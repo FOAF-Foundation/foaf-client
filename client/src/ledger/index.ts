@@ -3,6 +3,7 @@ export { createKeypairStore } from './keypair';
 export {
   addressFromPrivateKey,
   createPrivateKeySignatureProvider,
+  createRemoteCustodianSignatureProvider,
   personalMessageHash,
   signPayload,
 } from './signer';

@@ -1,6 +1,7 @@
 // Source of truth: foaf-client/client/src/auth/index.ts
 
 export { FoafAuthClient } from './FoafAuthClient';
+export { resolveFoafAddress } from './counterparty';
 export {
   FoafAuthErrorShape,
   normalizeError,
