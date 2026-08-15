@@ -59,6 +59,10 @@ function mapFlatAttributes(attrs: Record<string, unknown>): FoafIdentity {
     // the badge / account-settings UI.
     email_verified_at: 'email_verified_at' in attrs ? asString(attrs.email_verified_at) : undefined,
     pending_email: 'pending_email' in attrs ? asString(attrs.pending_email) : undefined,
+    // Custodian ledger address. Same present-key guard as email_verified_at so
+    // it flows from both the flat and v1-token-identity shapes; absent (not '')
+    // when the wallet is unbound (EC 1).
+    foaf_address: 'foaf_address' in attrs ? asString(attrs.foaf_address) : undefined,
     avatar_url: asString(attrs.avatar_url),
     created_at: asString(attrs.created_at) ?? '',
     updated_at: asString(attrs.updated_at) ?? '',
