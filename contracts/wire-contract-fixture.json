@@ -1,0 +1,7 @@
+{
+  "_comment": "Deterministic fixture for the custodian-sign -> verify_by_address round-trip. Private key is TEST-ONLY (never a real custodian key) and exists solely to pin the crypto contract; do not reuse it, do not log it. signer_address is derived from the public key of private_key_hex via keccak256(pubkey[1:])[12:]. expected_signature is an Ethereum personal_sign over the exact UTF-8 payload string.",
+  "private_key_hex": "5a52e7809581a6a5cfa0fbc5b06c9584064ffa5a5b5ef9d7810759b3cd0dd318",
+  "signer_address": "0x5F2a4dd4bbbAE29F1DB875f0decC1F9CcEc2fB25",
+  "payload": "{\"network_address\":\"0xdeadbeef\",\"from_address\":\"0xsender\",\"to_address\":\"0xreceiver\",\"value\":\"1\"}",
+  "expected_signature": "6059e6aa4d512e9c767702995eca7cd539909fa3b320c84ae92c2be2b1ddd86712076489fceff20c5d4ee73fd69f7ae7a348b9a29cd59cc63663f79c6dad19f01c"
+}
