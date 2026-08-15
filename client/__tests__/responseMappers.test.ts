@@ -219,6 +219,27 @@ describe('mapAuthResponse — v1-token-identity', () => {
     });
     expect(result.identity.foaf_address).toBeUndefined();
   });
+
+  // EC 1 on the wire: token_identity always emits foaf_address, so an unbound
+  // wallet arrives as an explicit null (not an omitted key). asString(null) is
+  // null, so it stays null through the mapper — never coerced to '' or dropped.
+  it('preserves foaf_address as null when the claim is explicitly null (EC 1)', () => {
+    const result = mapAuthResponse({
+      token: 'jwt-nullfa',
+      identity: {
+        foaf_id: 'foaf-nullfa',
+        user_name: 'nullfauser',
+        first_name: 'N',
+        last_name: 'U',
+        email: 'nullfa@example.com',
+        foaf_address: null,
+        avatar_url: null,
+        created_at: '',
+        updated_at: '',
+      },
+    });
+    expect(result.identity.foaf_address).toBeNull();
+  });
 });
 
 describe('mapAuthResponse — unknown shapes', () => {
