@@ -180,6 +180,45 @@ describe('mapAuthResponse — v1-token-identity', () => {
     expect(result.identity.email_verified_at).toBe('2026-06-08T00:00:00Z');
     expect(result.identity.pending_email).toBe('new@example.com');
   });
+
+  // One foaf_address per identity (AC 2 TS side). Copied via the same
+  // present-key guard as email_verified_at, so it reaches the identity from
+  // both flat and v1 shapes.
+  it('copies foaf_address when present', () => {
+    const result = mapAuthResponse({
+      token: 'jwt-fa',
+      identity: {
+        foaf_id: 'foaf-fa',
+        user_name: 'fauser',
+        first_name: 'F',
+        last_name: 'A',
+        email: 'fa@example.com',
+        foaf_address: '0x1111111111111111111111111111111111111111',
+        avatar_url: null,
+        created_at: '',
+        updated_at: '',
+      },
+    });
+    expect(result.identity.foaf_address).toBe('0x1111111111111111111111111111111111111111');
+  });
+
+  // EC 1: an unbound wallet is absent, never an empty string.
+  it('leaves foaf_address undefined when the claim is absent (EC 1)', () => {
+    const result = mapAuthResponse({
+      token: 'jwt-nofa',
+      identity: {
+        foaf_id: 'foaf-nofa',
+        user_name: 'nofauser',
+        first_name: 'N',
+        last_name: 'F',
+        email: 'nofa@example.com',
+        avatar_url: null,
+        created_at: '',
+        updated_at: '',
+      },
+    });
+    expect(result.identity.foaf_address).toBeUndefined();
+  });
 });
 
 describe('mapAuthResponse — unknown shapes', () => {

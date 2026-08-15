@@ -41,6 +41,13 @@ module Foaf
         )
       end
 
+      # Verifies the bearer token and returns the decoded claims as a
+      # STRING-KEYED hash (JWT.decode(...).first). Read every claim with a
+      # string key — `claims["foaf_address"]`, `claims["sub"]`, etc. A symbol
+      # key (`claims[:foaf_address]`) always returns nil here. The custodian's
+      # one-address-per-identity binding rides along as `claims["foaf_address"]`
+      # when the wallet is minted, and is simply absent when it is not (EC 1) —
+      # no extra parsing, no DB lookup (AC 2, AC 10).
       def verify(bearer_token, request_id: nil)
         token = bearer_token.to_s.sub(/\ABearer\s+/i, "")
         raise VerificationError, "token is required" if token.empty?

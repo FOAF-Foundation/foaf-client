@@ -120,5 +120,38 @@ RSpec.describe Foaf::Auth::Verifier do
     expect { verifier.verify(token) }
       .to raise_error(Foaf::Auth::UnknownKidError, /unknown/)
   end
+
+  # One foaf_address per identity — the decoded claims are a STRING-KEYED hash,
+  # so consumers read claims["foaf_address"]. These pin AC 2 (Ruby side) and
+  # EC 1 (absent, not null, when unbound). AC 10: no ActiveRecord / MySQL is
+  # touched — the address rides on the JWT and comes straight out of verify.
+  describe "foaf_address claim" do
+    let(:address) { "0x1111111111111111111111111111111111111111" }
+
+    it "surfaces foaf_address under the string key when the claim is present" do
+      claims = verifier.verify(token({ foaf_address: address }))
+
+      expect(claims["foaf_address"]).to eq(address)
+    end
+
+    it "returns nil for both string and symbol keys when the claim is absent (EC 1)" do
+      claims = verifier.verify(token)
+
+      expect(claims["foaf_address"]).to be_nil
+      expect(claims[:foaf_address]).to be_nil
+    end
+
+    # AC 10: starting from a valid JWT carrying foaf_address, the verifier
+    # returns the address with no peer-app DB dependency — the only I/O is the
+    # stubbed JWKS/revocations HTTP (http_get lambda), never ActiveRecord.
+    it "returns foaf_address from a valid JWT with no DB dependency (AC 10)" do
+      expect(defined?(ActiveRecord)).to be_nil
+
+      claims = verifier.verify("Bearer #{token({ foaf_address: address })}", request_id: "ac10")
+
+      expect(claims["foaf_address"]).to eq(address)
+      expect(claims["foaf_address"].length).to eq(42)
+    end
+  end
 end
 

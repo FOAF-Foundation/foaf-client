@@ -20,6 +20,11 @@ export interface FoafIdentity {
   pending_email?: string | null;
   has_password?: boolean;
   avatar_url: string | null;
+  // The custodian's one-address-per-identity ledger address (0x…), bound on
+  // auth.foaf.io. Absent/null until the wallet is minted (EC 1) — apps read it
+  // straight off the session identity instead of accepting a client-supplied
+  // (spoofable) address.
+  foaf_address?: string | null;
   created_at: string;
   updated_at: string;
 }
