@@ -6,11 +6,17 @@ import {
 import { shouldShowImage } from '../src/ui/avatarFallback';
 import {
   balancePillFor,
+  capacityExceededMessage,
   detailViewMode,
   eventAmountDisplay,
+  exceedsCapacity,
   formatRelativeDate,
+  initialPaymentSubmitState,
   LIST_MAX_WIDTH,
   listContentWrapperStyle,
+  paymentModalCopy,
+  paymentSubmitReducer,
+  quickAmountChips,
 } from '../src/ui/utils';
 import type { FoafUiTheme } from '../src/ui/theme';
 import type { ViewerTrustlineBalance } from '../src/ui/hooks/types';
@@ -262,5 +268,98 @@ describe('eventAmountDisplay (FR-3.7 best-effort sign)', () => {
   it('renders zero and non-numeric amounts unsigned (safe default)', () => {
     expect(eventAmountDisplay(0)).toEqual({ sign: '', amount: '$0.00', tone: 'neutral' });
     expect(eventAmountDisplay('abc')).toEqual({ sign: '', amount: '$0.00', tone: 'neutral' });
+  });
+});
+
+// testEnvironment is 'node' with no React renderer. The three PaymentModal seams
+// the checkpoint pins are each delegated to a pure exported helper (same
+// precedent as shouldShowImage / balancePillFor / detailViewMode), so the modal
+// renders them verbatim and they are asserted here without a rendered tree:
+//   - AC-9 capacity guard  → `exceedsCapacity` gates the disabled submit +
+//     `capacityExceededMessage` is the inline text.
+//   - EC-8 onSubmit reject → `paymentSubmitReducer`: a rejected submit lands in
+//     `error`, and `success` is unreachable from anything but an explicit
+//     `resolve` (no silent success).
+//   - mode microcopy       → `paymentModalCopy('i-owe')` carries the "I Owe More"
+//     label in both title and submit button.
+
+describe('PaymentModal capacity guard (AC-9)', () => {
+  // The modal disables submit and shows this inline message exactly when
+  // exceedsCapacity is true; amount '15' vs availableCapacity '10.00'.
+  it('flags amount 15 over a 10.00 capacity as exceeding, disabling submit', () => {
+    expect(exceedsCapacity('15', '10.00')).toBe(true);
+    // The modal's submitDisabled = !amountValid || overCapacity || submitting.
+    // With a valid amount and no in-flight submit, the guard alone disables it.
+    expect(capacityExceededMessage('10.00')).toBe('Exceeds available capacity of $10.00');
+  });
+
+  it('does not flag an amount at or under capacity', () => {
+    expect(exceedsCapacity('10.00', '10.00')).toBe(false);
+    expect(exceedsCapacity('9.99', '10.00')).toBe(false);
+  });
+
+  it('never guards when no capacity is supplied (host opted out) or amount is blank/zero', () => {
+    expect(exceedsCapacity('15', undefined)).toBe(false);
+    expect(exceedsCapacity('15', '')).toBe(false);
+    expect(exceedsCapacity('', '10.00')).toBe(false);
+    expect(exceedsCapacity('0', '10.00')).toBe(false);
+    expect(exceedsCapacity('abc', '10.00')).toBe(false);
+  });
+
+  it('offers Full/Half chips when capacity is known, else the fixed ladder', () => {
+    expect(quickAmountChips('10.00')).toEqual([
+      { label: 'Full $10.00', value: 10 },
+      { label: 'Half $5.00', value: 5 },
+    ]);
+    expect(quickAmountChips(undefined).map((c) => c.label)).toEqual(['$5', '$10', '$25', '$50']);
+    // A non-positive capacity falls back to the default ladder rather than
+    // offering a $0 "Full" chip.
+    expect(quickAmountChips('0').map((c) => c.label)).toEqual(['$5', '$10', '$25', '$50']);
+  });
+});
+
+describe('PaymentModal onSubmit rejection → error, not silent success (EC-8)', () => {
+  it('lands a rejected in-flight submit in the error state with the message', () => {
+    const submitting = paymentSubmitReducer(initialPaymentSubmitState, { type: 'submit' });
+    expect(submitting.status).toBe('submitting');
+
+    const rejected = paymentSubmitReducer(submitting, { type: 'reject', message: 'boom' });
+    expect(rejected.status).toBe('error');
+    expect(rejected.status).not.toBe('success'); // the silent-success bug EC-8 guards
+    expect(rejected.error).toBe('boom');
+  });
+
+  it('reaches success ONLY via resolve from an in-flight submit', () => {
+    const submitting = paymentSubmitReducer(initialPaymentSubmitState, { type: 'submit' });
+    expect(paymentSubmitReducer(submitting, { type: 'resolve' }).status).toBe('success');
+
+    // resolve/reject are ignored unless a submit is in flight, so a stray
+    // resolve can never fabricate a success out of idle/error.
+    expect(paymentSubmitReducer(initialPaymentSubmitState, { type: 'resolve' }).status).toBe('idle');
+    const errored = paymentSubmitReducer(submitting, { type: 'reject', message: 'x' });
+    expect(paymentSubmitReducer(errored, { type: 'resolve' }).status).toBe('error');
+  });
+
+  it('reset returns to idle so retry/reopen starts clean', () => {
+    const submitting = paymentSubmitReducer(initialPaymentSubmitState, { type: 'submit' });
+    const errored = paymentSubmitReducer(submitting, { type: 'reject', message: 'x' });
+    expect(paymentSubmitReducer(errored, { type: 'reset' })).toEqual(initialPaymentSubmitState);
+  });
+});
+
+describe('PaymentModal mode microcopy (checkpoint seam 3)', () => {
+  it("surfaces 'I Owe More' in both the title and the submit label for 'i-owe'", () => {
+    const copy = paymentModalCopy('i-owe');
+    expect(copy.title).toBe('I Owe More');
+    expect(copy.submitLabel).toContain('I Owe More');
+    expect(copy.submitting).toBe('Recording debt…');
+    expect(copy.success).toBe('Debt recorded');
+  });
+
+  it('carries GrowOp-matching status verbs per mode', () => {
+    expect(paymentModalCopy('pay')).toMatchObject({ submitting: 'Sending…', success: 'Payment sent', error: 'Payment failed' });
+    expect(paymentModalCopy('float')).toMatchObject({ submitting: 'Sending…', success: 'Payment sent' });
+    expect(paymentModalCopy('request')).toMatchObject({ submitting: 'Requesting…', success: 'Request sent', error: 'Request failed' });
+    expect(paymentModalCopy('received')).toMatchObject({ submitting: 'Recording…', success: 'Recorded' });
   });
 });

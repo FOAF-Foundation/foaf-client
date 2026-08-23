@@ -1,4 +1,8 @@
-import type { TrustlineDirection, ViewerTrustlineBalance } from './hooks/types';
+import type {
+  PaymentModalAction,
+  TrustlineDirection,
+  ViewerTrustlineBalance,
+} from './hooks/types';
 
 /**
  * "today" / "yesterday" / "N days ago" / "N weeks ago" / "N months ago", or ''
@@ -112,4 +116,167 @@ export function eventAmountDisplay(amount: string | number): EventAmountDisplay 
   return n > 0
     ? { sign: '+', amount: magnitude, tone: 'positive' }
     : { sign: '−', amount: magnitude, tone: 'negative' };
+}
+
+// ── PaymentModal seams (FR-3.6) ─────────────────────────────────────────────
+// The three behaviours the checkpoint pins (AC-9 capacity guard, EC-8 onSubmit
+// success/error transition, mode microcopy) are extracted here as pure helpers
+// so they are unit-testable without a React renderer — the same precedent as
+// shouldShowImage (3a) and balancePillFor/detailViewMode (3b). PaymentModal.tsx
+// renders these verbatim.
+
+/**
+ * Capacity guard (AC-9 / EC-5). True when a parsed amount exceeds the viewer's
+ * available capacity, which DISABLES submit and surfaces the inline
+ * over-capacity message. Only guards when `availableCapacity` is a finite
+ * number: an absent/blank/non-numeric limit means "no ceiling to enforce" and
+ * never blocks (host adapters that don't pass a capacity opt out of the guard).
+ * A non-positive/blank amount never exceeds anything.
+ */
+export function exceedsCapacity(amount: string | number, availableCapacity?: string): boolean {
+  if (availableCapacity == null || availableCapacity === '') return false;
+  const cap = Number(availableCapacity);
+  if (!Number.isFinite(cap)) return false;
+  const amt = Number(amount);
+  if (!Number.isFinite(amt) || amt <= 0) return false;
+  return amt > cap;
+}
+
+/** The inline message shown when {@link exceedsCapacity} is true (AC-9). */
+export function capacityExceededMessage(availableCapacity: string): string {
+  return `Exceeds available capacity of $${availableCapacity}`;
+}
+
+/**
+ * Per-mode presentation copy (FR-3.6). `title`/`submitLabel` drive the header
+ * and primary button; the three status verbs drive the submitting/success/error
+ * microcopy. GrowOp-matching: 'i-owe' surfaces "I Owe More" so the mode is
+ * unmistakable in both the title and the button (checkpoint seam 3).
+ */
+export interface PaymentModalCopy {
+  title: string;
+  submitLabel: string;
+  submitting: string;
+  success: string;
+  error: string;
+}
+
+const PAYMENT_MODAL_COPY: Record<PaymentModalAction, PaymentModalCopy> = {
+  pay: {
+    title: 'Pay',
+    submitLabel: 'Pay',
+    submitting: 'Sending…',
+    success: 'Payment sent',
+    error: 'Payment failed',
+  },
+  float: {
+    title: 'Float',
+    submitLabel: 'Float',
+    submitting: 'Sending…',
+    success: 'Payment sent',
+    error: 'Payment failed',
+  },
+  request: {
+    title: 'Request',
+    submitLabel: 'Request',
+    submitting: 'Requesting…',
+    success: 'Request sent',
+    error: 'Request failed',
+  },
+  received: {
+    title: 'Received',
+    submitLabel: 'Record received',
+    submitting: 'Recording…',
+    success: 'Recorded',
+    error: 'Record failed',
+  },
+  'i-owe': {
+    title: 'I Owe More',
+    submitLabel: 'Record I Owe More',
+    submitting: 'Recording debt…',
+    success: 'Debt recorded',
+    error: 'Record failed',
+  },
+};
+
+export function paymentModalCopy(action: PaymentModalAction): PaymentModalCopy {
+  return PAYMENT_MODAL_COPY[action];
+}
+
+/**
+ * Quick-amount chips (FR-3.6). "Full" / "Half" when a positive capacity is known
+ * (EC-5), else the fixed $5 / $10 / $25 / $50 ladder. Pure so the branch is
+ * assertable without rendering; the modal maps each chip's value into the amount
+ * field on tap.
+ */
+export interface QuickAmountChip {
+  label: string;
+  value: number;
+}
+
+export function quickAmountChips(availableCapacity?: string): QuickAmountChip[] {
+  if (availableCapacity != null && availableCapacity !== '') {
+    const cap = Number(availableCapacity);
+    if (Number.isFinite(cap) && cap > 0) {
+      return [
+        { label: `Full $${cap.toFixed(2)}`, value: cap },
+        { label: `Half $${(cap / 2).toFixed(2)}`, value: cap / 2 },
+      ];
+    }
+  }
+  return [
+    { label: '$5', value: 5 },
+    { label: '$10', value: 10 },
+    { label: '$25', value: 25 },
+    { label: '$50', value: 50 },
+  ];
+}
+
+/**
+ * Pure submit-state machine for the modal (EC-8). The modal awaits the
+ * host-supplied `onSubmit` Promise and drives this reducer from its outcome:
+ *   idle --submit--> submitting --resolve--> success
+ *                              \--reject---> error
+ *   error/success --reset--> idle   (retry / reopen)
+ * There is NO submitting→success transition on any event other than an explicit
+ * `resolve`, so a rejected Promise can never land in `success` (the silent-
+ * success bug EC-8 guards). `error` carries the message for the retry surface.
+ */
+export type PaymentSubmitStatus = 'idle' | 'submitting' | 'success' | 'error';
+
+export interface PaymentSubmitState {
+  status: PaymentSubmitStatus;
+  error?: string;
+}
+
+export type PaymentSubmitEvent =
+  | { type: 'submit' }
+  | { type: 'resolve' }
+  | { type: 'reject'; message: string }
+  | { type: 'reset' };
+
+export const initialPaymentSubmitState: PaymentSubmitState = { status: 'idle' };
+
+export function paymentSubmitReducer(
+  state: PaymentSubmitState,
+  event: PaymentSubmitEvent,
+): PaymentSubmitState {
+  switch (event.type) {
+    case 'submit':
+      // Only start from a resting state; ignore double-taps while in flight.
+      if (state.status === 'submitting') return state;
+      return { status: 'submitting' };
+    case 'resolve':
+      // Success is reachable ONLY from an in-flight submit resolving.
+      if (state.status !== 'submitting') return state;
+      return { status: 'success' };
+    case 'reject':
+      // A rejection from an in-flight submit lands in error, never success.
+      if (state.status !== 'submitting') return state;
+      return { status: 'error', error: event.message };
+    case 'reset':
+      return initialPaymentSubmitState;
+    default:
+      return state;
+  }
 }

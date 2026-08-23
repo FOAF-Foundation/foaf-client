@@ -21,6 +21,34 @@ export interface FoafContact {
 export type TrustlineDirection = 'owe-me' | 'i-owe' | 'settled';
 
 /**
+ * The five modes the PaymentModal (FR-3.6) can open in, from the viewer's frame:
+ *   'pay'      viewer sends to counterparty
+ *   'float'    viewer extends credit (advance) to counterparty
+ *   'request'  viewer asks counterparty to pay them
+ *   'received' viewer records receiving a payment
+ *   'i-owe'    viewer records a new debt ("I Owe More")
+ */
+export type PaymentModalAction = 'pay' | 'float' | 'request' | 'received' | 'i-owe';
+
+/**
+ * The payload the PaymentModal hands to its host-supplied `onSubmit` adapter.
+ *
+ * Intentionally MINIMAL (5 fields). It carries NO viewerAddress and NO
+ * creditline fields: those belong to the host adapter (Phase 4), which closes
+ * over the session and the {@link ViewerTrustlineBalance} and maps `action` to
+ * the right FoafLedgerClient call. The modal stays session-free and ledger-free
+ * — it never imports FoafLedgerClient and never reads auth context. This type is
+ * the whole seam between the two.
+ */
+export interface PaymentModalSubmit {
+  action: PaymentModalAction;
+  amount: number;
+  memo?: string;
+  counterPartyAddress: string;
+  networkAddress: string;
+}
+
+/**
  * Viewer-oriented trustline projection. `balance`, `received`, and `given` are
  * already flipped into the viewer's perspective by `viewerBalance`, so
  * `direction` is derived from the POST-FLIP balance:

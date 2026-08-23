@@ -12,6 +12,8 @@ export type { UseViewerTrustlineResult } from './useViewerTrustline';
 export { NoFoafNetworkError, resolveActiveNetwork, selectViewerTrustline } from './types';
 export type {
   FoafContact,
+  PaymentModalAction,
+  PaymentModalSubmit,
   TrustlineDirection,
   TrustlineEvent,
   ViewerTrustlineBalance,

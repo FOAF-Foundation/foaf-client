@@ -11,6 +11,8 @@ export type { TransactionHistoryProps } from './TransactionHistory';
 export { formatRelativeDate } from './utils';
 export { CreateTrustlineModal } from './CreateTrustlineModal';
 export { PaymentModal } from './PaymentModal';
+export type { PaymentModalProps } from './PaymentModal';
+export type { PaymentModalAction, PaymentModalSubmit } from './hooks/types';
 export { PaymentPathView } from './PaymentPathView';
 export { TrustlineBalancePreview } from './TrustlineBalancePreview';
 export { TrustlineCard } from './TrustlineCard';
