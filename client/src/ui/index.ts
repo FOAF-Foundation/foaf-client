@@ -1,5 +1,14 @@
 export { ContactCard } from './ContactCard';
 export type { ContactCardContact } from './ContactCard';
+export { ContactBalanceRow } from './ContactBalanceRow';
+export type { ContactBalanceRowProps } from './ContactBalanceRow';
+export { ContactListScreen } from './ContactListScreen';
+export type { ContactListScreenProps } from './ContactListScreen';
+export { ContactDetailScreen } from './ContactDetailScreen';
+export type { ContactDetailScreenProps } from './ContactDetailScreen';
+export { TransactionHistory } from './TransactionHistory';
+export type { TransactionHistoryProps } from './TransactionHistory';
+export { formatRelativeDate } from './utils';
 export { CreateTrustlineModal } from './CreateTrustlineModal';
 export { PaymentModal } from './PaymentModal';
 export { PaymentPathView } from './PaymentPathView';

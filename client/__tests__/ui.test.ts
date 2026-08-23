@@ -4,7 +4,44 @@ import {
   resolveTheme,
 } from '../src/ui/FoafThemeProvider';
 import { shouldShowImage } from '../src/ui/avatarFallback';
+import {
+  balancePillFor,
+  detailViewMode,
+  eventAmountDisplay,
+  formatRelativeDate,
+  LIST_MAX_WIDTH,
+  listContentWrapperStyle,
+} from '../src/ui/utils';
 import type { FoafUiTheme } from '../src/ui/theme';
+import type { ViewerTrustlineBalance } from '../src/ui/hooks/types';
+
+// testEnvironment is 'node' and the package ships no React renderer (see
+// jest.config.cjs + the Phase 2/3a tests). The Phase 3b component seams below
+// are each delegated to a pure exported helper (as 3a did with shouldShowImage),
+// so they are asserted through that helper rather than a rendered tree:
+//   - ContactBalanceRow's pill sign (AC-8) is `balancePillFor`, which the row
+//     renders verbatim (green/'+' for 'owe-me', red/'−' for 'i-owe', null pill
+//     for 'settled'/no-trustline). No `balance < 0` branch exists.
+//   - ContactDetailScreen's EC-1 gate (AC-10) is `detailViewMode(hasWallet)`:
+//     'unconfirmed' means the screen mounts neither the pill nor the action
+//     buttons and shows the "not linked" message (the LedgerDetail subtree — the
+//     only place the trustline hooks and buttons live — is not mounted).
+//   - ContactListScreen's web max-width (AC-7) is `listContentWrapperStyle`,
+//     the exact style object the screen wraps its content in.
+
+function trustline(
+  direction: ViewerTrustlineBalance['direction'],
+  balance: string,
+): ViewerTrustlineBalance {
+  return {
+    counterPartyAddress: '0xcp',
+    balance,
+    received: '100',
+    given: '100',
+    direction,
+    availableCapacity: '100',
+  };
+}
 
 // testEnvironment is 'node' and the package ships no React renderer (see
 // jest.config.cjs + the Phase 2 hooks tests). These seams are covered through
@@ -120,5 +157,110 @@ describe('UserAvatar EC-6 onError -> identicon swap (FR-3.3)', () => {
     expect(shouldShowImage(false, null)).toBe(false);
     expect(shouldShowImage(false, undefined)).toBe(false);
     expect(shouldShowImage(false, '')).toBe(false);
+  });
+});
+
+describe('ContactBalanceRow balance pill sign (AC-8)', () => {
+  // The hook already flipped the sign into the viewer's frame, so the pill reads
+  // trustline.direction as-is — 'owe-me' is green/'+', never re-derived from a
+  // raw `balance < 0` comparison.
+  it("shows a green '+$X' pill for direction 'owe-me' (counterparty owes viewer)", () => {
+    const pill = balancePillFor(trustline('owe-me', '12'));
+    expect(pill).not.toBeNull();
+    expect(pill?.sign).toBe('+');
+    expect(pill?.amount).toBe('$12.00');
+    expect(pill?.tone).toBe('positive'); // -> balancePositive / positiveBg (green)
+  });
+
+  it("shows a red '−$X' pill for direction 'i-owe' (viewer owes counterparty)", () => {
+    // The post-flip balance for 'i-owe' is negative; the pill shows the magnitude
+    // with a red minus, from the direction — not from re-negating the number.
+    const pill = balancePillFor(trustline('i-owe', '-12'));
+    expect(pill).not.toBeNull();
+    expect(pill?.sign).toBe('−');
+    expect(pill?.amount).toBe('$12.00');
+    expect(pill?.tone).toBe('negative'); // -> balanceNegative / negativeBg (red)
+  });
+
+  it("renders no pill for direction 'settled'", () => {
+    expect(balancePillFor(trustline('settled', '0'))).toBeNull();
+  });
+
+  it('renders no pill when there is no trustline yet (null)', () => {
+    expect(balancePillFor(null)).toBeNull();
+  });
+
+  it('does not re-derive the sign from the raw balance number', () => {
+    // Even if a positive-magnitude balance string were paired with 'i-owe', the
+    // pill follows the direction (red '−'), proving the sign is not read from the
+    // number's own sign. This is the anti-double-flip guard.
+    const pill = balancePillFor(trustline('i-owe', '12'));
+    expect(pill?.sign).toBe('−');
+    expect(pill?.tone).toBe('negative');
+  });
+});
+
+describe('ContactDetailScreen EC-1 unconfirmed contact (AC-10)', () => {
+  it("resolves to 'unconfirmed' when the contact has no wallet", () => {
+    // 'unconfirmed' => the screen mounts the "not linked" message and mounts
+    // neither the trustline pill nor the Pay/Request/I Owe More buttons (the
+    // LedgerDetail subtree that holds them is not rendered), and the events hook
+    // never runs. No exception is thrown resolving this.
+    expect(detailViewMode(false)).toBe('unconfirmed');
+  });
+
+  it("resolves to 'ledger' when the contact has a wallet", () => {
+    expect(detailViewMode(true)).toBe('ledger');
+  });
+});
+
+describe('ContactListScreen web max-width (AC-7)', () => {
+  it('constrains list content to a centered 430-wide column', () => {
+    // This is the exact style object the screen wraps its content View in.
+    expect(LIST_MAX_WIDTH).toBe(430);
+    expect(listContentWrapperStyle.maxWidth).toBe(430);
+    expect(listContentWrapperStyle.alignSelf).toBe('center');
+    expect(listContentWrapperStyle.width).toBe('100%');
+  });
+});
+
+describe('formatRelativeDate (FR-3.2 utility)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it("returns '' for a null date", () => {
+    expect(formatRelativeDate(null)).toBe('');
+  });
+
+  it("returns '' for an unparseable date", () => {
+    expect(formatRelativeDate('not-a-date')).toBe('');
+  });
+
+  it("returns 'today' for now", () => {
+    expect(formatRelativeDate(new Date().toISOString())).toBe('today');
+  });
+
+  it("returns 'yesterday' for ~1 day ago", () => {
+    expect(formatRelativeDate(new Date(Date.now() - DAY - 1000).toISOString())).toBe('yesterday');
+  });
+
+  it('returns days / weeks / months for the respective ranges', () => {
+    expect(formatRelativeDate(new Date(Date.now() - 5 * DAY).toISOString())).toBe('5 days ago');
+    expect(formatRelativeDate(new Date(Date.now() - 21 * DAY).toISOString())).toBe('3 weeks ago');
+    expect(formatRelativeDate(new Date(Date.now() - 90 * DAY).toISOString())).toBe('3 months ago');
+  });
+});
+
+describe('eventAmountDisplay (FR-3.7 best-effort sign)', () => {
+  it('renders a positive amount as a green +', () => {
+    expect(eventAmountDisplay(5)).toEqual({ sign: '+', amount: '$5.00', tone: 'positive' });
+  });
+
+  it('renders a negative amount as a red −', () => {
+    expect(eventAmountDisplay(-5)).toEqual({ sign: '−', amount: '$5.00', tone: 'negative' });
+  });
+
+  it('renders zero and non-numeric amounts unsigned (safe default)', () => {
+    expect(eventAmountDisplay(0)).toEqual({ sign: '', amount: '$0.00', tone: 'neutral' });
+    expect(eventAmountDisplay('abc')).toEqual({ sign: '', amount: '$0.00', tone: 'neutral' });
   });
 });
