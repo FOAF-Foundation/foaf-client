@@ -6,3 +6,4 @@ export { PaymentPathView } from './PaymentPathView';
 export { TrustlineBalancePreview } from './TrustlineBalancePreview';
 export { TrustlineCard } from './TrustlineCard';
 export type { FoafUiTheme } from './theme';
+export * from './hooks';
