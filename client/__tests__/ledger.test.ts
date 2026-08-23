@@ -167,6 +167,40 @@ describe('FoafLedgerClient', () => {
     );
   });
 
+  it('binds the global fetch fallback so a browser-context call does not throw Illegal invocation', async () => {
+    // In a real browser, globalThis.fetch must run with `this === window`; a
+    // detached reference (`this.fetcher = globalThis.fetch`) invoked as a method
+    // runs with `this` set to the client instance and throws
+    // "TypeError: Illegal invocation". jest.fn() alone can't reproduce that (a
+    // plain mock ignores its receiver), so this mock replicates the native
+    // receiver check: it throws unless invoked with `this === globalThis`. The
+    // constructor's `.bind(globalThis)` is exactly what keeps that true.
+    const original = globalThis.fetch;
+    let receiverCalls = 0;
+    function boundOnlyFetch(
+      this: unknown,
+      _input: RequestInfo | URL,
+      _init?: RequestInit,
+    ): Promise<Response> {
+      if (this !== globalThis) {
+        throw new TypeError('Illegal invocation');
+      }
+      receiverCalls += 1;
+      return Promise.resolve(response(200, [{ address: 'network' }]));
+    }
+    (globalThis as { fetch: typeof fetch }).fetch =
+      boundOnlyFetch as unknown as typeof fetch;
+    try {
+      // No `fetch` option → the client falls back to globalThis.fetch, the
+      // exact capture that must be bound.
+      const client = new FoafLedgerClient({ baseUrl: 'https://foaf.test' });
+      await expect(client.networks()).resolves.toEqual([{ address: 'network' }]);
+      expect(receiverCalls).toBe(1);
+    } finally {
+      (globalThis as { fetch: typeof fetch }).fetch = original;
+    }
+  });
+
   it('classifies transport errors as ambiguous without losing the error', async () => {
     const fetcher = jest.fn(async () => {
       throw new Error('network timeout');

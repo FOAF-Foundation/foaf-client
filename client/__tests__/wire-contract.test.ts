@@ -50,3 +50,77 @@ describe('wire-contract fixture: TS signer matches verify_by_address', () => {
     );
   });
 });
+
+// Pins the EXACT canonical wire bytes for the two allowlisted op shapes. The
+// Phase-4 foaf-auth re-serializer asserts byte-equality against this same
+// contracts/canonical-op-bodies.json, so key ORDER (insertion, not sorted) is
+// the load-bearing invariant. These tests build the payload objects the way
+// FoafLedgerClient does and JSON.stringify them; they never call fetch/mutate.
+describe('canonical-op-bodies fixture: exact wire byte order', () => {
+  const opBodies = JSON.parse(
+    readFileSync(
+      resolve(__dirname, '../../contracts/canonical-op-bodies.json'),
+      'utf8',
+    ),
+  ) as {
+    updateTrustline: {
+      input: {
+        creditorAddress: string;
+        debtorAddress: string;
+        creditlineGiven: string;
+        creditlineReceived: string;
+      };
+      canonical_body: string;
+    };
+    createPendingTransfer_with_optionals: {
+      input: {
+        networkAddress: string;
+        fromAddress: string;
+        toAddress: string;
+        value: string;
+        extraData: unknown;
+        maxFee: string;
+        feePayer: string;
+        path: string[];
+        idempotencyKey: string;
+      };
+      canonical_body: string;
+    };
+  };
+
+  it('updateTrustline canonical body matches FoafLedgerClient key order', () => {
+    const params = opBodies.updateTrustline.input;
+    // Mirror FoafLedgerClient.ts:49-54 exactly.
+    const body = JSON.stringify({
+      creditor_address: params.creditorAddress,
+      debtor_address: params.debtorAddress,
+      creditline_given: params.creditlineGiven,
+      creditline_received: params.creditlineReceived,
+    });
+    expect(body).toBe(opBodies.updateTrustline.canonical_body);
+  });
+
+  it('createPendingTransfer with optionals appends fields in insertion order', () => {
+    const params = opBodies.createPendingTransfer_with_optionals.input;
+    // Mirror FoafLedgerClient.ts:88-99 exactly: base object, then optionals
+    // appended (not sorted) in the order max_fee, fee_payer, path,
+    // idempotency_key.
+    const payload: Record<string, unknown> = {
+      network_address: params.networkAddress,
+      from_address: params.fromAddress,
+      to_address: params.toAddress,
+      value: params.value,
+      extra_data: params.extraData,
+    };
+    if (params.maxFee !== undefined) payload.max_fee = params.maxFee;
+    if (params.feePayer !== undefined) payload.fee_payer = params.feePayer;
+    if (params.path !== undefined) payload.path = params.path;
+    if (params.idempotencyKey !== undefined) {
+      payload.idempotency_key = params.idempotencyKey;
+    }
+    const body = JSON.stringify(payload);
+    expect(body).toBe(
+      opBodies.createPendingTransfer_with_optionals.canonical_body,
+    );
+  });
+});

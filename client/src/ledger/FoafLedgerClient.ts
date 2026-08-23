@@ -17,7 +17,7 @@ export class FoafLedgerClient {
   constructor(options: FoafLedgerClientOptions | string) {
     const resolved = typeof options === 'string' ? { baseUrl: options } : options;
     this.baseUrl = resolved.baseUrl.replace(/\/$/, '');
-    this.fetcher = resolved.fetch ?? globalThis.fetch;
+    this.fetcher = (resolved.fetch ?? globalThis.fetch).bind(globalThis);
     this.signatureProvider = resolved.signatureProvider;
   }
 

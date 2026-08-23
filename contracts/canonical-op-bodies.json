@@ -1,0 +1,36 @@
+{
+  "_comment": "Canonical wire bytes for the two allowlisted FOAF op shapes. Both the TS client (client/__tests__/wire-contract.test.ts) and the foaf-auth re-serializer (Phase 4) assert byte-equality against this file. Key order is INSERTION order, not sorted: updateTrustline follows FoafLedgerClient.ts:49-54; createPendingTransfer follows FoafLedgerClient.ts:88-99, appending max_fee, fee_payer, path, idempotency_key only when present. canonical_body is the exact JSON.stringify output (no whitespace).",
+  "updateTrustline": {
+    "input": {
+      "creditorAddress": "0x1111111111111111111111111111111111111111",
+      "debtorAddress": "0x2222222222222222222222222222222222222222",
+      "creditlineGiven": "100",
+      "creditlineReceived": "0"
+    },
+    "canonical_body": "{\"creditor_address\":\"0x1111111111111111111111111111111111111111\",\"debtor_address\":\"0x2222222222222222222222222222222222222222\",\"creditline_given\":\"100\",\"creditline_received\":\"0\"}"
+  },
+  "createPendingTransfer_minimal": {
+    "input": {
+      "networkAddress": "0xdeadbeef",
+      "fromAddress": "0x2222222222222222222222222222222222222222",
+      "toAddress": "0x1111111111111111111111111111111111111111",
+      "value": "6.80",
+      "extraData": null
+    },
+    "canonical_body": "{\"network_address\":\"0xdeadbeef\",\"from_address\":\"0x2222222222222222222222222222222222222222\",\"to_address\":\"0x1111111111111111111111111111111111111111\",\"value\":\"6.80\",\"extra_data\":null}"
+  },
+  "createPendingTransfer_with_optionals": {
+    "input": {
+      "networkAddress": "0xdeadbeef",
+      "fromAddress": "0x2222222222222222222222222222222222222222",
+      "toAddress": "0x1111111111111111111111111111111111111111",
+      "value": "6.80",
+      "extraData": null,
+      "maxFee": "0.05",
+      "feePayer": "0x2222222222222222222222222222222222222222",
+      "path": ["0x3333333333333333333333333333333333333333"],
+      "idempotencyKey": "client:payment:42"
+    },
+    "canonical_body": "{\"network_address\":\"0xdeadbeef\",\"from_address\":\"0x2222222222222222222222222222222222222222\",\"to_address\":\"0x1111111111111111111111111111111111111111\",\"value\":\"6.80\",\"extra_data\":null,\"max_fee\":\"0.05\",\"fee_payer\":\"0x2222222222222222222222222222222222222222\",\"path\":[\"0x3333333333333333333333333333333333333333\"],\"idempotency_key\":\"client:payment:42\"}"
+  }
+}
