@@ -3,11 +3,6 @@
 **Status:** teed up 2026-08-23. Definition for review BEFORE launching the Bureau. Self-contained
 handoff — a session with no prior context can launch the Bureau from it.
 
-**Models:** agent models are governed by the **Bureau's own model policy** — do NOT override them
-from this brief (the Conductor runs on Sonnet per that policy, specialists per their policy
-assignments). That Robin's launcher session happens to run on Opus says nothing about agent
-model choices.
-
 **Where to run:** `~/Code/foaftech` root is recommended — the work spans `foaf-client` (the
 deliverable), `foaf-auth` (write-path endpoint, if chosen), `onloan/onloan-app` (first adopter),
 and `Growoperative/growoperative-app` (read-only port source now; adoption phase later). If the
@@ -130,9 +125,7 @@ The plan phase should pick one and write the ADR.
 
 ## Constraints
 
-- **Agent models follow the Bureau's model policy** (Conductor on Sonnet; specialists per policy).
-  This brief must not override them. Robin launches from his own fresh session; this brief is the
-  handoff.
+- Robin launches from his own fresh session; this brief is the handoff.
 - growoperative-app is a READ-ONLY port source in phases 1–5. Its own adoption (phase 6) is the
   only time it changes, and then only via beta → demo → prod.
 - App mirrors (`src/protocol/foaf-client/` in apps) are copy-synced via
