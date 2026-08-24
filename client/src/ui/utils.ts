@@ -107,6 +107,34 @@ export interface EventAmountDisplay {
   tone: 'positive' | 'negative' | 'neutral';
 }
 
+/**
+ * Viewer-oriented display for one TRANSFER event (FR-3.7), against the live
+ * wire shape (contracts/trustline-events.json). Non-Transfer kinds (e.g.
+ * BalanceUpdate bookkeeping rows) return null and are not rendered. Sign:
+ * a transfer FROM the viewer settles/extends credit toward the counterparty
+ * ('+', positive — matches GrowOperative's activity list), a transfer TO the
+ * viewer is '\u2212' negative; a transfer not involving the viewer renders
+ * unsigned. Display formatting only — no amount arithmetic.
+ */
+export function transferEventDisplay(
+  event: { type: string; from: string; to: string; value?: string | number; timestamp: number },
+  viewerAddress: string,
+): (EventAmountDisplay & { dateIso: string }) | null {
+  if (event.type !== 'Transfer') return null;
+  const n = Number(event.value);
+  if (!Number.isFinite(n)) return null;
+  const magnitude = `$${Math.abs(n).toFixed(2)}`;
+  const viewer = viewerAddress.toLowerCase();
+  const dateIso = new Date(event.timestamp * 1000).toISOString();
+  if (event.from.toLowerCase() === viewer) {
+    return { sign: '+', amount: magnitude, tone: 'positive', dateIso };
+  }
+  if (event.to.toLowerCase() === viewer) {
+    return { sign: '\u2212', amount: magnitude, tone: 'negative', dateIso };
+  }
+  return { sign: '', amount: magnitude, tone: 'neutral', dateIso };
+}
+
 export function eventAmountDisplay(amount: string | number): EventAmountDisplay {
   const n = Number(amount);
   if (!Number.isFinite(n) || n === 0) {

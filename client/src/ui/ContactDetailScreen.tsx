@@ -7,7 +7,7 @@ import { TransactionHistory } from './TransactionHistory';
 import { resolveTheme, useFoafTheme } from './FoafThemeProvider';
 import { useTrustlineEvents } from './hooks/useTrustlineEvents';
 import { useViewerTrustline } from './hooks/useViewerTrustline';
-import { balancePillFor, detailViewMode, directionLabel, formatRelativeDate } from './utils';
+import { balancePillFor, detailViewMode, directionLabel, formatRelativeDate, listContentWrapperStyle } from './utils';
 import type { FoafContact } from './hooks/types';
 import type { FoafUiTheme } from './theme';
 
@@ -54,7 +54,13 @@ export function ContactDetailScreen({
   return (
     <ScrollView
       style={{ backgroundColor: resolved.colors.background }}
-      contentContainerStyle={{ gap: resolved.spacing.md, padding: resolved.spacing.md }}
+      // AC-7: same phone-width constraint as ContactListScreen — the profile
+      // reads as a single column, so keep it one on desktop too.
+      contentContainerStyle={{
+        ...listContentWrapperStyle,
+        gap: resolved.spacing.md,
+        padding: resolved.spacing.md,
+      }}
     >
       <View style={{ alignItems: 'center', gap: resolved.spacing.sm }}>
         <UserAvatar name={name} imageUrl={contact.avatar_url} size={72} theme={theme} />

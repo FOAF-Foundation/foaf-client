@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { resolveTheme, useFoafTheme } from './FoafThemeProvider';
-import { eventAmountDisplay, formatRelativeDate } from './utils';
+import { formatRelativeDate, transferEventDisplay } from './utils';
 import type { TrustlineEvent } from './hooks/types';
 import type { FoafUiTheme } from './theme';
 
@@ -14,17 +14,16 @@ export interface TransactionHistoryProps {
 }
 
 /**
- * Trustline activity list (FR-3.7). Rows render in the order the API returned
- * them — no re-sort. Each row shows a viewer-oriented signed amount (best-effort;
- * unsigned when the event carries no unambiguous sign) and a relative date.
- *
- * COVERAGE CAVEAT (AC-8 scope): `TrustlineEvent`'s sign is not contract-pinned,
- * so this colouring is best-effort and NOT seam-covered by AC-8. The pill in
- * ContactBalanceRow is the seam-covered sign guarantee; here unsigned is the
- * safe default (see `eventAmountDisplay`).
+ * Trustline activity list (FR-3.7). Renders TRANSFER events in the order the
+ * API returned them — no re-sort; BalanceUpdate/other bookkeeping kinds are
+ * filtered out (they mirror the same operations). Sign and shape are pinned
+ * to the live wire via contracts/trustline-events.json: a transfer FROM the
+ * viewer renders '+', a transfer TO the viewer renders '\u2212' (see
+ * `transferEventDisplay`).
  */
 export function TransactionHistory({
   events,
+  viewerAddress,
   loading,
   error,
   theme,
@@ -49,7 +48,13 @@ export function TransactionHistory({
     );
   }
 
-  if (events.length === 0) {
+  const rows = events
+    .map((event) => ({ event, display: transferEventDisplay(event, viewerAddress) }))
+    .filter((row): row is { event: (typeof events)[number]; display: NonNullable<ReturnType<typeof transferEventDisplay>> } =>
+      row.display !== null,
+    );
+
+  if (rows.length === 0) {
     return (
       <View style={{ paddingVertical: resolved.spacing.md }}>
         <Text style={{ color: resolved.colors.mutedText }}>No transactions yet</Text>
@@ -59,8 +64,7 @@ export function TransactionHistory({
 
   return (
     <View style={{ gap: resolved.spacing.xs }}>
-      {events.map((event) => {
-        const display = eventAmountDisplay(event.amount);
+      {rows.map(({ event, display }, index) => {
         const color =
           display.tone === 'positive'
             ? resolved.colors.balancePositive
@@ -69,7 +73,7 @@ export function TransactionHistory({
               : resolved.colors.text;
         return (
           <View
-            key={String(event.id)}
+            key={`${event.type}-${String(event.transactionId ?? event.blockNumber ?? index)}`}
             style={{
               alignItems: 'center',
               flexDirection: 'row',
@@ -78,7 +82,7 @@ export function TransactionHistory({
             }}
           >
             <Text style={{ color: resolved.colors.mutedText, flex: 1 }}>
-              {formatRelativeDate(event.created_at)}
+              {formatRelativeDate(display.dateIso)}
             </Text>
             <Text style={{ color, fontVariant: numericFontVariant as ('tabular-nums')[] }}>
               {display.sign}

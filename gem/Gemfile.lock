@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    foaf_client (0.1.2)
+    foaf_client (0.2.0)
       eth (~> 0.5)
       jwt (>= 2.7, < 3)
 

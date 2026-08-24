@@ -67,14 +67,27 @@ export interface ViewerTrustlineBalance {
 }
 
 /**
- * Minimal narrowing of the untyped events `FoafLedgerClient.trustlineEvents`
- * returns. Only the three fields the UI relies on are claimed; everything else
- * passes through so callers can read event-type-specific fields ad hoc.
+ * One ledger event as the LIVE wire serves it (contract-pinned in
+ * contracts/trustline-events.json, captured from prod api.foaf.io): a flat
+ * object keyed by `type` ('Transfer' | 'BalanceUpdate' | future kinds) with
+ * `from`/`to` addresses, a unix-seconds `timestamp`, and per-kind numeric
+ * fields (`value` on Transfer, `balance` on BalanceUpdate). Everything else
+ * passes through so callers can read kind-specific fields ad hoc.
  */
 export interface TrustlineEvent {
-  id: string | number;
-  amount: string | number;
-  created_at: string;
+  type: string;
+  from: string;
+  to: string;
+  /** Unix seconds. */
+  timestamp: number;
+  transactionId?: string | number;
+  blockNumber?: string | number;
+  /** Present on Transfer events. */
+  value?: string | number;
+  /** Present on BalanceUpdate events. */
+  balance?: string | number;
+  /** JSON string with app-supplied metadata (description, app, ...). */
+  extraData?: string;
   [key: string]: unknown;
 }
 
@@ -185,9 +198,10 @@ export function selectViewerTrustline(
 export function narrowTrustlineEvent(value: unknown): TrustlineEvent | null {
   if (typeof value !== 'object' || value === null) return null;
   const event = value as Record<string, unknown>;
-  const idOk = typeof event.id === 'string' || typeof event.id === 'number';
-  const amountOk = typeof event.amount === 'string' || typeof event.amount === 'number';
-  const createdOk = typeof event.created_at === 'string';
-  if (!idOk || !amountOk || !createdOk) return null;
-  return event as TrustlineEvent;
+  const typeOk = typeof event.type === 'string' && event.type.length > 0;
+  const fromOk = typeof event.from === 'string';
+  const toOk = typeof event.to === 'string';
+  const timestampOk = typeof event.timestamp === 'number' && Number.isFinite(event.timestamp);
+  if (!typeOk || !fromOk || !toOk || !timestampOk) return null;
+  return event as unknown as TrustlineEvent;
 }

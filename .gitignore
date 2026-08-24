@@ -6,3 +6,5 @@
 /gem/vendor/
 *.gem
 
+.bureau/runs/
+.bureau/archive/

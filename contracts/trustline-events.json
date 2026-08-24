@@ -1,0 +1,141 @@
+{
+  "_comment": "Pinned from the LIVE prod ledger (api.foaf.io, 2026-08-24): GET /api/v1/networks/{net}/users/{viewer}/trustlines/{counterparty}/events for the robin<->alex trustline. TRUTH: the $55.00 Transfer is FROM robin TO alex ('Dog food' via growoperative), so in robin's view it renders '+$55.00' (positive). BalanceUpdate rows mirror the same operations and are NOT rendered by TransactionHistory. Both the TS suite and any future gem reader must assert against this file.",
+  "viewer": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+  "counterParty": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+  "events": [
+    {
+      "networkAddress": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+      "blockNumber": 120,
+      "timestamp": 1786989376,
+      "type": "Transfer",
+      "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+      "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+      "transactionId": 76,
+      "value": 55.0,
+      "extraData": "{\"app\":\"growoperative\",\"description\":\"Dog food\",\"operation\":\"adjustment\",\"mirrored_at\":\"2026-08-17T17:56:15Z\"}",
+      "parentOp": {
+        "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "value": 55,
+        "path": [
+          "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+          "0xe75555a273f2045813f69e8b4a531f96ada64eb4"
+        ]
+      }
+    },
+    {
+      "networkAddress": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+      "blockNumber": 119,
+      "timestamp": 1786989376,
+      "type": "BalanceUpdate",
+      "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+      "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+      "transactionId": 76,
+      "balance": -166.8,
+      "parentOp": {
+        "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "value": 55,
+        "path": [
+          "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+          "0xe75555a273f2045813f69e8b4a531f96ada64eb4"
+        ]
+      }
+    },
+    {
+      "networkAddress": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+      "blockNumber": 118,
+      "timestamp": 1786812402,
+      "type": "Transfer",
+      "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+      "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+      "transactionId": 75,
+      "value": 26.0,
+      "extraData": "{\"app\":\"growoperative\",\"description\":\"Debt recorded by robin\",\"operation\":\"adjustment\",\"mirrored_at\":\"2026-08-15T16:46:41Z\"}",
+      "parentOp": {
+        "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "value": 26,
+        "path": [
+          "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+          "0xe75555a273f2045813f69e8b4a531f96ada64eb4"
+        ]
+      }
+    },
+    {
+      "networkAddress": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+      "blockNumber": 117,
+      "timestamp": 1786812402,
+      "type": "BalanceUpdate",
+      "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+      "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+      "transactionId": 75,
+      "balance": -111.8,
+      "parentOp": {
+        "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "value": 26,
+        "path": [
+          "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+          "0xe75555a273f2045813f69e8b4a531f96ada64eb4"
+        ]
+      }
+    },
+    {
+      "networkAddress": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+      "blockNumber": 116,
+      "timestamp": 1786576367,
+      "type": "Transfer",
+      "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+      "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+      "transactionId": 74,
+      "value": 7.8,
+      "extraData": "{\"app\":\"growoperative\",\"description\":\"Peaches\",\"operation\":\"adjustment\",\"mirrored_at\":\"2026-08-12T23:12:47Z\"}",
+      "parentOp": {
+        "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "value": 7.8,
+        "path": [
+          "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+          "0xe75555a273f2045813f69e8b4a531f96ada64eb4"
+        ]
+      }
+    },
+    {
+      "networkAddress": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+      "blockNumber": 115,
+      "timestamp": 1786576367,
+      "type": "BalanceUpdate",
+      "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+      "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+      "transactionId": 74,
+      "balance": -85.8,
+      "parentOp": {
+        "from": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "to": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "value": 7.8,
+        "path": [
+          "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+          "0xe75555a273f2045813f69e8b4a531f96ada64eb4"
+        ]
+      }
+    }
+  ],
+  "expected_rendered": [
+    {
+      "sign": "+",
+      "amount": "$55.00",
+      "tone": "positive"
+    },
+    {
+      "sign": "+",
+      "amount": "$26.00",
+      "tone": "positive"
+    },
+    {
+      "sign": "+",
+      "amount": "$7.80",
+      "tone": "positive"
+    }
+  ]
+}
