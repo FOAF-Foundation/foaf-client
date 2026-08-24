@@ -1,5 +1,6 @@
 import { FoafLedgerClient, viewerBalance } from '../ledger';
 import type { TrustlineRow } from '../ledger';
+import { trustlineCounterParty } from '../ui/hooks/types';
 import type {
   CreditLedgerDataSource,
   CreditLedgerSummary,
@@ -129,8 +130,7 @@ export class DirectFoafAdapter implements CreditLedgerDataSource {
   }
 
   private mapTrustline(row: TrustlineRow): CreditTrustline {
-    const counterparty =
-      row.counterPartyAddress ?? row.counter_party_address ?? String(row.id ?? '');
+    const counterparty = trustlineCounterParty(row) ?? String(row.id ?? '');
     const owner = typeof row.user_address === 'string'
       ? row.user_address
       : this.options.viewerAddress;
