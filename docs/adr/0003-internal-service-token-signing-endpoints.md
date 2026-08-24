@@ -1,6 +1,13 @@
 # ADR-0003: App↔custodian over internal service-token endpoints; service_tokens-table path only for sign/migrate
-Status: accepted
+Status: superseded-by-0006
 Date: 2026-08-14
+
+> Supersession scope (narrow): ADR-0006 supersedes this ADR ONLY on the single question of
+> whether a browser-reachable endpoint may sign the authenticated caller's OWN custodial key.
+> Everything below stays authoritative and unchanged — the service-token transport for backend
+> apps (railsbackend, onloan-api) over `/v1/internal/custodian/*`, AND the rejection of the
+> env-var static private key for sign/migrate. ADR-0006 adds a second, session-authed door to
+> the signer for UI-only apps; it does NOT relax or remove any rule in this ADR.
 
 ## Context
 
