@@ -90,7 +90,7 @@ export class FoafLedgerClient {
       from_address: params.fromAddress,
       to_address: params.toAddress,
       value: params.value,
-      extra_data: params.extraData,
+      extra_data: params.extraData ?? null,
     };
     if (params.maxFee !== undefined) payload.max_fee = params.maxFee;
     if (params.feePayer !== undefined) payload.fee_payer = params.feePayer;

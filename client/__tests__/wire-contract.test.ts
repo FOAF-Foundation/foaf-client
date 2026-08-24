@@ -8,6 +8,17 @@ import {
   addressFromPrivateKey,
   personalMessageHash,
 } from '../src/ledger/signer';
+import { FoafLedgerClient } from '../src/ledger/FoafLedgerClient';
+
+function stubResponse(status: number, body: unknown): Response {
+  const text = typeof body === 'string' ? body : JSON.stringify(body);
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => JSON.parse(text),
+    text: async () => text,
+  } as Response;
+}
 
 // Pins the custodian-sign -> FOAF verify_by_address round-trip against the
 // shared wire-contract fixture. FOAF's SignatureVerifier.verify_by_address does
@@ -72,6 +83,16 @@ describe('canonical-op-bodies fixture: exact wire byte order', () => {
       };
       canonical_body: string;
     };
+    createPendingTransfer_minimal: {
+      input: {
+        networkAddress: string;
+        fromAddress: string;
+        toAddress: string;
+        value: string;
+        extraData: unknown;
+      };
+      canonical_body: string;
+    };
     createPendingTransfer_with_optionals: {
       input: {
         networkAddress: string;
@@ -98,6 +119,38 @@ describe('canonical-op-bodies fixture: exact wire byte order', () => {
       creditline_received: params.creditlineReceived,
     });
     expect(body).toBe(opBodies.updateTrustline.canonical_body);
+  });
+
+  it('createPendingTransfer with extraData OMITTED sends extra_data:null on the wire', async () => {
+    // Seam: the FOAF sign_for_self allowlist requires extra_data PRESENT and
+    // 422s a body missing the key. When a caller omits extraData (undefined),
+    // FoafLedgerClient.createPendingTransfer must still emit "extra_data":null.
+    //
+    // This drives the REAL FoafLedgerClient method (not an inline mirror) and
+    // captures the exact bytes it puts on the wire, so it is a true mutation
+    // check: revert the fix (extra_data: params.extraData) and, with extraData
+    // omitted, JSON.stringify drops the key -> captured body differs from the
+    // fixture -> this assertion goes red.
+    const fx = opBodies.createPendingTransfer_minimal.input;
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        stubResponse(201, { id: 'pending-1', status: 'pending' }),
+    );
+    const client = new FoafLedgerClient({
+      baseUrl: 'https://foaf.test',
+      fetch: fetcher as unknown as typeof fetch,
+    });
+
+    await client.createPendingTransfer({
+      networkAddress: fx.networkAddress,
+      fromAddress: fx.fromAddress,
+      toAddress: fx.toAddress,
+      value: fx.value,
+      // extraData deliberately omitted -> undefined
+    });
+
+    const sentBody = fetcher.mock.calls[0][1]?.body as string;
+    expect(sentBody).toBe(opBodies.createPendingTransfer_minimal.canonical_body);
   });
 
   it('createPendingTransfer with optionals appends fields in insertion order', () => {
