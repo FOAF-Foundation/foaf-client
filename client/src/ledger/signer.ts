@@ -78,11 +78,12 @@ export function createRemoteCustodianSignatureProvider(
   serviceToken: string,
   foafId: string,
 ): FoafSignatureProvider {
+  const boundFetch = fetchFn.bind(globalThis);
   const signUrl = `${baseUrl.replace(/\/$/, '')}/v1/internal/custodian/sign`;
   return async (_address: string, exactBody: string): Promise<string | null> => {
     let response: Response;
     try {
-      response = await fetchFn(signUrl, {
+      response = await boundFetch(signUrl, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -107,6 +108,64 @@ export function createRemoteCustodianSignatureProvider(
     const data = (await response.json()) as { signature?: string };
     if (!data.signature) {
       throw new Error('FOAF custodian sign returned no signature');
+    }
+    return data.signature;
+  };
+}
+
+/**
+ * Signature provider that signs via the session-authed sign_for_self endpoint
+ * (ADR-0006). Use this in browser-only / UI-only FOAF apps that have no product
+ * backend and cannot safely hold a service token.
+ *
+ * The session Bearer token authorises the sign; the endpoint signs the
+ * authenticated caller's OWN key only (FR-4.2 / CONDITION 1). The exact body
+ * is passed through unmodified — the same bytes that go on the wire to api.foaf.io
+ * are the bytes the endpoint signs (FR-4.5 exact-body coupling / CONDITION 2).
+ *
+ * EC 5: network failure or 5xx throws — NO local-key fallback.
+ * 404 → returns null (distinct from a server failure, mirrors createRemoteCustodianSignatureProvider).
+ * 422 / 403 / 401 → throws with status + body (non-allowlisted body, missing wallet, bad token).
+ */
+export function createSessionSignatureProvider(
+  fetchFn: typeof globalThis.fetch,
+  baseUrl: string,
+  getToken: () => Promise<string | null> | string | null,
+): FoafSignatureProvider {
+  const boundFetch = fetchFn.bind(globalThis);
+  const signUrl = `${baseUrl.replace(/\/$/, '')}/v1/custodian/sign_for_self`;
+  return async (_address: string, exactBody: string): Promise<string | null> => {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('FOAF session sign_for_self: no token available');
+    }
+    let response: Response;
+    try {
+      response = await boundFetch(signUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ exact_body: exactBody }),
+      });
+    } catch (err) {
+      throw new Error(
+        `FOAF custodian sign_for_self unreachable: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      throw new Error(
+        `FOAF custodian sign_for_self failed: ${response.status} — ${await response.text()}`,
+      );
+    }
+
+    const data = (await response.json()) as { signature?: string };
+    if (!data.signature) {
+      throw new Error('FOAF custodian sign_for_self returned no signature');
     }
     return data.signature;
   };

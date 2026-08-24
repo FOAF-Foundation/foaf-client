@@ -4,6 +4,7 @@ export {
   addressFromPrivateKey,
   createPrivateKeySignatureProvider,
   createRemoteCustodianSignatureProvider,
+  createSessionSignatureProvider,
   personalMessageHash,
   signPayload,
 } from './signer';

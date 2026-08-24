@@ -1,4 +1,7 @@
-import { createRemoteCustodianSignatureProvider } from '../src/ledger';
+import {
+  createRemoteCustodianSignatureProvider,
+  createSessionSignatureProvider,
+} from '../src/ledger';
 import { resolveFoafAddress } from '../src/auth';
 
 function response(status: number, body: unknown): Response {
@@ -89,6 +92,140 @@ describe('createRemoteCustodianSignatureProvider', () => {
     );
 
     await expect(provider('0xsigner', 'body')).resolves.toBeNull();
+  });
+});
+
+describe('createSessionSignatureProvider', () => {
+  const sessionToken = 'session-jwt-abc';
+
+  it('posts to sign_for_self with the Bearer token and returns the signature', async () => {
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        response(200, { signature: '0xsig' }),
+    );
+    const provider = createSessionSignatureProvider(
+      fetcher as unknown as typeof fetch,
+      baseUrl,
+      async () => sessionToken,
+    );
+
+    const signature = await provider('0xsigner', '{"value":"5"}');
+
+    expect(signature).toBe('0xsig');
+  });
+
+  it('sends the Authorization header as Bearer <token>', async () => {
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        response(200, { signature: '0xsig' }),
+    );
+    const provider = createSessionSignatureProvider(
+      fetcher as unknown as typeof fetch,
+      baseUrl,
+      async () => sessionToken,
+    );
+
+    await provider('0xsigner', '{"value":"5"}');
+
+    const init = fetcher.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      `Bearer ${sessionToken}`,
+    );
+  });
+
+  it('sends only { exact_body } — no foaf_id and no signer-selection field', async () => {
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        response(200, { signature: '0xsig' }),
+    );
+    const provider = createSessionSignatureProvider(
+      fetcher as unknown as typeof fetch,
+      baseUrl,
+      async () => sessionToken,
+    );
+
+    await provider('0xsigner', '{"value":"5"}');
+
+    const init = fetcher.mock.calls[0][1] as RequestInit;
+    const parsed = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(parsed).toEqual({ exact_body: '{"value":"5"}' });
+    expect(parsed).not.toHaveProperty('foaf_id');
+    expect(parsed).not.toHaveProperty('signer_address');
+    expect(parsed).not.toHaveProperty('address');
+  });
+
+  it('posts to exactly <baseUrl>/v1/custodian/sign_for_self', async () => {
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        response(200, { signature: '0xsig' }),
+    );
+    const provider = createSessionSignatureProvider(
+      fetcher as unknown as typeof fetch,
+      baseUrl,
+      async () => sessionToken,
+    );
+
+    await provider('0xsigner', 'body');
+
+    expect(fetcher.mock.calls[0][0]).toBe(`${baseUrl}/v1/custodian/sign_for_self`);
+  });
+
+  it('returns null only for an explicit 404 (distinct from a server failure)', async () => {
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        response(404, { error: 'no wallet' }),
+    );
+    const provider = createSessionSignatureProvider(
+      fetcher as unknown as typeof fetch,
+      baseUrl,
+      async () => sessionToken,
+    );
+
+    await expect(provider('0xsigner', 'body')).resolves.toBeNull();
+  });
+
+  it('throws on a 5xx — no null return for a server failure (EC 5)', async () => {
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        response(503, 'custodian down'),
+    );
+    const provider = createSessionSignatureProvider(
+      fetcher as unknown as typeof fetch,
+      baseUrl,
+      async () => sessionToken,
+    );
+
+    await expect(provider('0xsigner', 'body')).rejects.toThrow(/503/);
+  });
+
+  it('throws on a network failure — never falls back to a local key (EC 5)', async () => {
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => {
+        throw new Error('network down');
+      },
+    );
+    const provider = createSessionSignatureProvider(
+      fetcher as unknown as typeof fetch,
+      baseUrl,
+      async () => sessionToken,
+    );
+
+    await expect(provider('0xsigner', 'body')).rejects.toThrow(/unreachable/);
+  });
+
+  it('throws when no session token is available (no-token case)', async () => {
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        response(200, { signature: '0xsig' }),
+    );
+    const provider = createSessionSignatureProvider(
+      fetcher as unknown as typeof fetch,
+      baseUrl,
+      async () => null,
+    );
+
+    await expect(provider('0xsigner', 'body')).rejects.toThrow(/no token/);
+    expect(fetcher).not.toHaveBeenCalled();
   });
 });
 
