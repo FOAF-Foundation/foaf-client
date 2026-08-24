@@ -253,17 +253,33 @@ describe('ledger cryptography and custody', () => {
     expect(await store.get()).toBeNull();
   });
 
-  it('flips a trustline into the counterparty perspective', () => {
+  it('passes an already-viewer-oriented userTrustlines row through without negation', () => {
+    // userTrustlines rows are already viewer-oriented: no sign/limit flip.
+    // `given`/`received` are the live wire keys; `balance` stays as-is.
+    expect(
+      viewerBalance(
+        { counterParty: '0xcounter', balance: '-8.50', given: '40', received: '25' },
+        '0xviewer',
+        '0xcounter',
+      ),
+    ).toEqual({
+      balance: '-8.50',
+      creditlineGiven: '40',
+      creditlineReceived: '25',
+    });
+  });
+
+  it('still reads write-side creditline* keys as a tolerant fallback', () => {
     expect(
       viewerBalance(
         { balance: '8.50', creditline_given: '40', creditline_received: '25' },
         '0xviewer',
-        '0xowner',
+        '0xcounter',
       ),
     ).toEqual({
-      balance: '-8.50',
-      creditlineGiven: '25',
-      creditlineReceived: '40',
+      balance: '8.50',
+      creditlineGiven: '40',
+      creditlineReceived: '25',
     });
   });
 });

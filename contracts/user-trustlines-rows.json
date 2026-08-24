@@ -1,0 +1,56 @@
+{
+  "_comment": "Shared wire fixture for the per-viewer userTrustlines endpoint (GET /api/v1/networks/{net}/users/{addr}/trustlines). Pinned from the LIVE prod ledger (api.foaf.io, 2026-08-24) so the TS read-side hooks and the Ruby gem cannot re-drift from each other. TRUTH: robin owes alex $166.80. These rows are ALREADY viewer-oriented (the network API has applied the viewer's perspective): `balance` is the viewer's balance (negative = the viewer owes, positive = the counterparty owes the viewer), `given` is credit the viewer extended TO the counterparty, `received` is credit the counterparty extended TO the viewer. This is the OPPOSITE endpoint from the raw creditor-oriented /trustlines row in viewer-balance.json (which needs viewer_balance = -balance). NO negation is applied to these rows.",
+  "network": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+  "robin": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+  "alex": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+  "rows": {
+    "robin_for_alex": {
+      "wire": {
+        "id": 2,
+        "address": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+        "currencyNetwork": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+        "user": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "counterParty": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "given": 240.0,
+        "received": 249.8,
+        "leftGiven": 73.2,
+        "leftReceived": 83.0,
+        "balance": -166.8,
+        "interestRateGiven": 0,
+        "interestRateReceived": 0,
+        "isFrozen": false
+      },
+      "expected": {
+        "counterParty": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "viewer_balance": "-166.8",
+        "direction": "i-owe",
+        "my_credit_limit": "249.8",
+        "their_credit_limit": "240.0"
+      }
+    },
+    "alex_for_robin": {
+      "wire": {
+        "id": 2,
+        "address": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+        "currencyNetwork": "0x1650bc3099ab8313727771cc807a88122b120ec0",
+        "user": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
+        "counterParty": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "given": 249.8,
+        "received": 240.0,
+        "leftGiven": 416.6,
+        "leftReceived": 406.8,
+        "balance": 166.8,
+        "interestRateGiven": 0,
+        "interestRateReceived": 0,
+        "isFrozen": false
+      },
+      "expected": {
+        "counterParty": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
+        "viewer_balance": "166.8",
+        "direction": "owe-me",
+        "my_credit_limit": "240.0",
+        "their_credit_limit": "249.8"
+      }
+    }
+  }
+}

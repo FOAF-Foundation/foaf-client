@@ -52,55 +52,58 @@ describe('useContacts projection (AC-10)', () => {
 });
 
 describe('useTrustlineBalances sign convention (AC-8)', () => {
+  // userTrustlines rows are ALREADY viewer-oriented, so buildViewerTrustlineBalance
+  // reads the balance/limits through WITHOUT negating: negative balance = the
+  // viewer owes (i-owe), positive = the counterparty owes the viewer (owe-me).
+  // `received` is the viewer's credit limit, `given` is the counterparty's.
   const viewer = '0xviewer';
-  const owner = '0xowner';
+  const counter = '0xcounter';
 
-  it("flips a positive raw balance into the viewer owing (i-owe, negative)", () => {
+  it('reports i-owe (no negation) for an already-negative viewer balance', () => {
     const row: TrustlineRow = {
-      balance: '8.50',
-      creditline_given: '40',
-      creditline_received: '25',
+      counterParty: counter,
+      balance: '-8.50',
+      given: '40',
+      received: '25',
     };
 
-    const projected = buildViewerTrustlineBalance(row, viewer, owner);
+    const projected = buildViewerTrustlineBalance(row, viewer, counter);
 
     expect(projected.balance).toBe('-8.50');
     expect(projected.direction).toBe('i-owe');
-    // received/given are flipped by viewerBalance into the viewer's frame.
-    expect(projected.received).toBe('40');
-    expect(projected.given).toBe('25');
+    expect(projected.received).toBe('25'); // my credit limit
+    expect(projected.given).toBe('40'); // their credit limit
   });
 
-  it('flips a negative raw balance into the counterparty owing (owe-me, positive)', () => {
+  it('reports owe-me (no negation) for an already-positive viewer balance', () => {
     const row: TrustlineRow = {
-      balance: '-8.50',
-      creditline_given: '40',
-      creditline_received: '25',
+      counterParty: counter,
+      balance: '8.50',
+      given: '40',
+      received: '25',
     };
 
-    const projected = buildViewerTrustlineBalance(row, viewer, owner);
+    const projected = buildViewerTrustlineBalance(row, viewer, counter);
 
     expect(projected.balance).toBe('8.50');
     expect(projected.direction).toBe('owe-me');
   });
 
   it('reports settled for a zero balance', () => {
-    const row: TrustlineRow = { balance: '0', creditline_given: '40', creditline_received: '25' };
+    const row: TrustlineRow = { counterParty: counter, balance: '0', given: '40', received: '25' };
 
-    expect(buildViewerTrustlineBalance(row, viewer, owner).direction).toBe('settled');
+    expect(buildViewerTrustlineBalance(row, viewer, counter).direction).toBe('settled');
   });
 
   it('leaves the full received limit available unless the viewer owes', () => {
-    // viewer != owner, so viewerBalance flips the limits: the viewer's `received`
-    // is the raw creditline_given (40).
-    const oweMe: TrustlineRow = { balance: '-8.50', creditline_given: '40', creditline_received: '25' };
-    const oweMeProjected = buildViewerTrustlineBalance(oweMe, viewer, owner);
-    expect(oweMeProjected.received).toBe('40');
-    expect(oweMeProjected.availableCapacity).toBe('40');
+    const oweMe: TrustlineRow = { counterParty: counter, balance: '8.50', given: '40', received: '25' };
+    const oweMeProjected = buildViewerTrustlineBalance(oweMe, viewer, counter);
+    expect(oweMeProjected.received).toBe('25');
+    expect(oweMeProjected.availableCapacity).toBe('25');
 
-    const iOwe: TrustlineRow = { balance: '8.50', creditline_given: '40', creditline_received: '25' };
-    // received (40) minus the outstanding balance (8.50) = 31.5.
-    expect(buildViewerTrustlineBalance(iOwe, viewer, owner).availableCapacity).toBe('31.5');
+    const iOwe: TrustlineRow = { counterParty: counter, balance: '-8.50', given: '40', received: '25' };
+    // received (25) minus the outstanding balance (8.50) = 16.5.
+    expect(buildViewerTrustlineBalance(iOwe, viewer, counter).availableCapacity).toBe('16.5');
   });
 });
 

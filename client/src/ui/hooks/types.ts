@@ -49,12 +49,13 @@ export interface PaymentModalSubmit {
 }
 
 /**
- * Viewer-oriented trustline projection. `balance`, `received`, and `given` are
- * already flipped into the viewer's perspective by `viewerBalance`, so
- * `direction` is derived from the POST-FLIP balance:
+ * Viewer-oriented trustline projection. The source `userTrustlines` rows are
+ * ALREADY viewer-oriented, so `viewerBalance` passes the balance through without
+ * negation and `direction` reads directly off it:
  *   balance > 0 → counterparty owes the viewer → 'owe-me'
  *   balance < 0 → the viewer owes the counterparty → 'i-owe'
- * This is the opposite of the raw creditor-oriented protocol sign.
+ * (Negation applies only to the raw creditor-oriented `/trustlines` endpoint,
+ * handled by the gem's `from_trustline_row`, not here.)
  */
 export interface ViewerTrustlineBalance {
   counterPartyAddress: string;
@@ -137,9 +138,10 @@ function availableCapacityOf(
 }
 
 /**
- * Pure builder: a raw protocol trustline row → viewer-oriented balance.
- * Delegates the sign/limit flip to `viewerBalance` (the one place that owns the
- * convention), then derives `direction` and `availableCapacity` from its output.
+ * Pure builder: an already-viewer-oriented `userTrustlines` row → viewer
+ * balance. Delegates key-mapping to `viewerBalance` (the one place that owns the
+ * read-side convention — no negation for this endpoint), then derives
+ * `direction` and `availableCapacity` from its output.
  */
 export function buildViewerTrustlineBalance(
   row: TrustlineRow,
@@ -158,9 +160,13 @@ export function buildViewerTrustlineBalance(
   };
 }
 
-/** Resolves a trustline row's counterparty from either casing the protocol emits. */
+/**
+ * Resolves a trustline row's counterparty. The live `userTrustlines` wire key is
+ * `counterParty`; `counterPartyAddress`/`counter_party_address` are kept only as
+ * tolerant fallbacks for older/creditor-oriented row shapes.
+ */
 export function trustlineCounterParty(row: TrustlineRow): string | null {
-  return row.counterPartyAddress ?? row.counter_party_address ?? null;
+  return row.counterParty ?? row.counterPartyAddress ?? row.counter_party_address ?? null;
 }
 
 /**

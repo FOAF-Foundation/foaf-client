@@ -20,8 +20,19 @@ depend on ledger code.
 - Mutating transfer calls preserve status and response body.
 - `max-capacity-path-info` must include `address` in the JSON body until the
   upstream route/controller parameter mismatch is fixed.
-- Balance conversion is pure: viewer balance is the negated FOAF balance;
-  `received` is the viewer's credit limit and `given` is the counterparty's.
+- Balance conversion is pure. Which endpoint the row came from decides whether
+  the balance is negated:
+  - `userTrustlines(net, myAddress)` rows (`GET .../users/{addr}/trustlines`)
+    are ALREADY viewer-oriented — the per-user endpoint applied the viewer's
+    frame. So NO negation: `balance` is already the viewer's balance (negative =
+    the viewer owes), `received` is the viewer's credit limit, `given` is the
+    counterparty's. This is what the read-side hooks and
+    `Foaf::Balances.from_user_trustline_row` consume.
+  - Raw creditor-oriented `/trustlines` rows are creditor-view, so the debtor's
+    viewer balance IS the negated FOAF balance
+    (`Foaf::Balances.from_trustline_row`, `viewer_balance = -balance`).
+  In both cases `received` is the viewer's credit limit and `given` is the
+  counterparty's.
 
 ## Tests
 

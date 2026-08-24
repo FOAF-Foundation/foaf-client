@@ -68,9 +68,24 @@ export type FoafMutationResult<T> =
       error: string;
     };
 
+/**
+ * A row from the per-viewer `userTrustlines` endpoint
+ * (`GET /networks/{net}/users/{addr}/trustlines`). These rows are ALREADY
+ * viewer-oriented: `balance` is the viewer's balance (negative = the viewer
+ * owes), `given` is credit the viewer extended TO the counterparty, `received`
+ * is credit the counterparty extended TO the viewer.
+ *
+ * Primary field names match the live wire (`counterParty`, `given`,
+ * `received`). The legacy/write-side aliases (`counterPartyAddress`,
+ * `creditlineGiven`, …) are kept only as tolerant fallbacks so a raw
+ * creditor-oriented `/trustlines` row still parses.
+ */
 export interface TrustlineRow {
+  counterParty?: string;
   counterPartyAddress?: string;
   counter_party_address?: string;
+  given?: string | number;
+  received?: string | number;
   creditlineGiven?: string | number;
   creditline_given?: string | number;
   creditlineReceived?: string | number;
