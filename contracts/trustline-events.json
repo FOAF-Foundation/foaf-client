@@ -1,5 +1,5 @@
 {
-  "_comment": "Pinned from the LIVE prod ledger (api.foaf.io, 2026-08-24): GET /api/v1/networks/{net}/users/{viewer}/trustlines/{counterparty}/events for the robin<->alex trustline. TRUTH: the $55.00 Transfer is FROM robin TO alex ('Dog food' via growoperative), so in robin's view it renders '+$55.00' (positive). BalanceUpdate rows mirror the same operations and are NOT rendered by TransactionHistory. Both the TS suite and any future gem reader must assert against this file.",
+  "_comment": "Pinned from the LIVE prod ledger (api.foaf.io, 2026-08-24): GET /api/v1/networks/{net}/users/{viewer}/trustlines/{counterparty}/events for the robin<->alex trustline. TRUTH: the $55.00 Transfer is FROM robin TO alex ('Dog food' via growoperative), so in robin's view it renders '+$55.00' (positive). BalanceUpdate rows mirror the same operations and are NOT rendered by TransactionHistory. Both the TS suite and any future gem reader must assert against this file. expected_rendered now also pins the extraData projection (description/app/operation) and txId \u2014 the comment fields GrowOperative renders and OnLoan must too.",
   "viewer": "0xa068b418a65d899a566aa92ff9620731a7d7bff6",
   "counterParty": "0xe75555a273f2045813f69e8b4a531f96ada64eb4",
   "events": [
@@ -125,17 +125,29 @@
     {
       "sign": "+",
       "amount": "$55.00",
-      "tone": "positive"
+      "tone": "positive",
+      "description": "Dog food",
+      "app": "growoperative",
+      "operation": "adjustment",
+      "txId": "76"
     },
     {
       "sign": "+",
       "amount": "$26.00",
-      "tone": "positive"
+      "tone": "positive",
+      "description": "Debt recorded by robin",
+      "app": "growoperative",
+      "operation": "adjustment",
+      "txId": "75"
     },
     {
       "sign": "+",
       "amount": "$7.80",
-      "tone": "positive"
+      "tone": "positive",
+      "description": "Peaches",
+      "app": "growoperative",
+      "operation": "adjustment",
+      "txId": "74"
     }
   ]
 }

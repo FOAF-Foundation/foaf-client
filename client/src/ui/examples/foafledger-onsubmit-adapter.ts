@@ -43,6 +43,8 @@ export function createFoafLedgerOnSubmitAdapter(
   ledger: FoafLedgerClient,
   viewerFoafAddress: string,
   currentTrustline: ViewerTrustlineBalance,
+  /** The registered FOAF app name recorded in extra_data ("foafledger", "onloan"). */
+  appName: string,
 ): (submit: PaymentModalSubmit) => Promise<void> {
   return async (submit: PaymentModalSubmit): Promise<void> => {
     const { action, amount, counterPartyAddress, networkAddress } = submit;
@@ -50,12 +52,19 @@ export function createFoafLedgerOnSubmitAdapter(
     switch (action) {
       case 'pay':
       case 'float':
-        // Viewer sends to counterparty.
+        // Viewer sends to counterparty. extra_data records the originating
+        // app + the user's memo — GrowOperative's convention, so history rows
+        // carry a description and app attribution in every FOAF app.
         await ledger.createPendingTransfer({
           networkAddress,
           fromAddress: viewerFoafAddress,
           toAddress: counterPartyAddress,
           value: String(amount),
+          extraData: JSON.stringify({
+            app: appName,
+            description: submit.memo || (action === 'pay' ? 'Payment' : 'Float'),
+            operation: 'payment',
+          }),
         });
         break;
 
@@ -67,6 +76,11 @@ export function createFoafLedgerOnSubmitAdapter(
           fromAddress: counterPartyAddress,
           toAddress: viewerFoafAddress,
           value: String(amount),
+          extraData: JSON.stringify({
+            app: appName,
+            description: submit.memo || (action === 'request' ? 'Payment requested' : 'Payment received'),
+            operation: 'payment',
+          }),
         });
         break;
 

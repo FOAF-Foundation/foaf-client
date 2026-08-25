@@ -116,23 +116,63 @@ export interface EventAmountDisplay {
  * viewer is '\u2212' negative; a transfer not involving the viewer renders
  * unsigned. Display formatting only — no amount arithmetic.
  */
+export interface TransferEventMeta {
+  /** App-supplied comment ("Dog food"). */
+  description: string | null;
+  /** Which FOAF app recorded the operation ("growoperative", "onloan"). */
+  app: string | null;
+  /** Operation kind ("adjustment" | "payment" | "settlement" | ...). */
+  operation: string | null;
+}
+
+/**
+ * Parses the wire's `extraData` JSON string (app attribution + description +
+ * operation kind, as recorded by the originating app). Tolerant: absent or
+ * malformed extraData yields all-null meta, never a throw.
+ */
+export function parseEventExtraData(extraData: unknown): TransferEventMeta {
+  const empty: TransferEventMeta = { description: null, app: null, operation: null };
+  if (typeof extraData !== 'string' || extraData.length === 0) return empty;
+  try {
+    const parsed = JSON.parse(extraData) as Record<string, unknown>;
+    if (typeof parsed !== 'object' || parsed === null) return empty;
+    return {
+      description: typeof parsed.description === 'string' && parsed.description ? parsed.description : null,
+      app: typeof parsed.app === 'string' && parsed.app ? parsed.app : null,
+      operation: typeof parsed.operation === 'string' && parsed.operation ? parsed.operation : null,
+    };
+  } catch {
+    return empty;
+  }
+}
+
 export function transferEventDisplay(
-  event: { type: string; from: string; to: string; value?: string | number; timestamp: number },
+  event: {
+    type: string;
+    from: string;
+    to: string;
+    value?: string | number;
+    timestamp: number;
+    transactionId?: string | number;
+    extraData?: unknown;
+  },
   viewerAddress: string,
-): (EventAmountDisplay & { dateIso: string }) | null {
+): (EventAmountDisplay & { dateIso: string; meta: TransferEventMeta; txId: string | null }) | null {
   if (event.type !== 'Transfer') return null;
   const n = Number(event.value);
   if (!Number.isFinite(n)) return null;
   const magnitude = `$${Math.abs(n).toFixed(2)}`;
   const viewer = viewerAddress.toLowerCase();
   const dateIso = new Date(event.timestamp * 1000).toISOString();
+  const meta = parseEventExtraData(event.extraData);
+  const txId = event.transactionId !== undefined ? String(event.transactionId) : null;
   if (event.from.toLowerCase() === viewer) {
-    return { sign: '+', amount: magnitude, tone: 'positive', dateIso };
+    return { sign: '+', amount: magnitude, tone: 'positive', dateIso, meta, txId };
   }
   if (event.to.toLowerCase() === viewer) {
-    return { sign: '\u2212', amount: magnitude, tone: 'negative', dateIso };
+    return { sign: '\u2212', amount: magnitude, tone: 'negative', dateIso, meta, txId };
   }
-  return { sign: '', amount: magnitude, tone: 'neutral', dateIso };
+  return { sign: '', amount: magnitude, tone: 'neutral', dateIso, meta, txId };
 }
 
 export function eventAmountDisplay(amount: string | number): EventAmountDisplay {

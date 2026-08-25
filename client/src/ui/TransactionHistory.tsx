@@ -63,7 +63,7 @@ export function TransactionHistory({
   }
 
   return (
-    <View style={{ gap: resolved.spacing.xs }}>
+    <View style={{ gap: resolved.spacing.sm }}>
       {rows.map(({ event, display }, index) => {
         const color =
           display.tone === 'positive'
@@ -71,23 +71,51 @@ export function TransactionHistory({
             : display.tone === 'negative'
               ? resolved.colors.balanceNegative
               : resolved.colors.text;
+        const kind = display.meta.operation;
+        const kindColor =
+          kind === 'payment' || kind === 'settlement'
+            ? resolved.colors.balancePositive
+            : resolved.colors.actionOwe ?? resolved.colors.mutedText;
         return (
           <View
             key={`${event.type}-${String(event.transactionId ?? event.blockNumber ?? index)}`}
             style={{
-              alignItems: 'center',
-              flexDirection: 'row',
-              gap: resolved.spacing.sm,
+              borderBottomColor: resolved.colors.border,
+              borderBottomWidth: 1,
+              gap: 2,
               paddingVertical: resolved.spacing.xs,
             }}
           >
-            <Text style={{ color: resolved.colors.mutedText, flex: 1 }}>
-              {formatRelativeDate(display.dateIso)}
-            </Text>
-            <Text style={{ color, fontVariant: numericFontVariant as ('tabular-nums')[] }}>
-              {display.sign}
-              {display.amount}
-            </Text>
+            {kind ? (
+              <Text
+                style={{
+                  color: kindColor,
+                  fontSize: (resolved.typography?.bodySize ?? 14) - 4,
+                  fontWeight: '700',
+                  textTransform: 'capitalize',
+                }}
+              >
+                {kind}
+              </Text>
+            ) : null}
+            <View style={{ alignItems: 'center', flexDirection: 'row', gap: resolved.spacing.sm }}>
+              <Text style={{ color: resolved.colors.mutedText, flex: 1 }}>
+                {formatRelativeDate(display.dateIso)}
+                {display.txId ? ` \u00b7 tx #${display.txId}` : ''}
+              </Text>
+              <Text style={{ color, fontVariant: numericFontVariant as ('tabular-nums')[], fontWeight: '700' }}>
+                {display.sign}
+                {display.amount}
+              </Text>
+            </View>
+            {display.meta.description ? (
+              <Text style={{ color: resolved.colors.text }}>{display.meta.description}</Text>
+            ) : null}
+            {display.meta.app ? (
+              <Text style={{ color: resolved.colors.mutedText, fontSize: (resolved.typography?.bodySize ?? 14) - 3 }}>
+                via {display.meta.app}
+              </Text>
+            ) : null}
           </View>
         );
       })}

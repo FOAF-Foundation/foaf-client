@@ -17,7 +17,15 @@ const fixture = JSON.parse(
   viewer: string;
   counterParty: string;
   events: unknown[];
-  expected_rendered: Array<{ sign: string; amount: string; tone: string }>;
+  expected_rendered: Array<{
+    sign: string;
+    amount: string;
+    tone: string;
+    description: string | null;
+    app: string | null;
+    operation: string | null;
+    txId: string;
+  }>;
 };
 
 describe('trustline events wire contract', () => {
@@ -34,9 +42,17 @@ describe('trustline events wire contract', () => {
       .map((event) => transferEventDisplay(event, fixture.viewer))
       .filter((display): display is NonNullable<typeof display> => display !== null);
 
-    expect(rows.map(({ sign, amount, tone }) => ({ sign, amount, tone }))).toEqual(
-      fixture.expected_rendered,
-    );
+    expect(
+      rows.map(({ sign, amount, tone, meta, txId }) => ({
+        sign,
+        amount,
+        tone,
+        description: meta.description,
+        app: meta.app,
+        operation: meta.operation,
+        txId,
+      })),
+    ).toEqual(fixture.expected_rendered);
   });
 
   it('excludes BalanceUpdate bookkeeping rows from rendering', () => {
