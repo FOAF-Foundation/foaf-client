@@ -205,6 +205,7 @@ function LedgerDetail({
           <TransactionHistory
             events={events}
             viewerAddress={viewerAddress}
+            viewerBalance={trustline?.balance ?? null}
             loading={eventsLoading}
             error={eventsError}
             theme={theme}
