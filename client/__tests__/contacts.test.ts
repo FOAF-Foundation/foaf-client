@@ -34,6 +34,44 @@ describe('FoafContactsClient', () => {
       headers: { Authorization: 'Bearer token' },
     });
   });
+
+  it('normalizes blank identity text so consumers can fall back to the handle', async () => {
+    const get = jest.fn(async () => ({
+      data: {
+        contacts: [
+          {
+            foaf_id: 'identity-sara',
+            created_at: '2026-09-07T00:00:00Z',
+            created_via_invitation_id: null,
+            user_name: 'sara',
+            display_name: '',
+            avatar_url: null,
+            foaf_address: '0x6c5bfe5026359c309c08d39c8156db6d0e7cd161',
+          },
+          {
+            foaf_id: 'identity-handle-fallback',
+            created_at: null,
+            created_via_invitation_id: null,
+            user_name: '   ',
+            display_name: '\t',
+            avatar_url: null,
+            foaf_address: null,
+          },
+        ],
+      },
+    }));
+    const client = new FoafContactsClient({
+      baseUrl: 'https://auth.foaf.test',
+      clientId: 'onloan',
+      storage: createMemoryTokenStorage('token'),
+      httpClient: { get },
+    });
+
+    const contacts = await client.list();
+
+    expect(contacts[0]).toMatchObject({ user_name: 'sara', display_name: null });
+    expect(contacts[1]).toMatchObject({ user_name: null, display_name: null });
+  });
 });
 
 describe('contacts-envelope fixture: enriched FoafContactEdge shape', () => {
