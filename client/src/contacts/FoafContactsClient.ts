@@ -5,6 +5,21 @@ import type {
   FoafContactsResponse,
 } from './types';
 
+function nonBlankProfileText(value: string | null): string | null {
+  return value?.trim() ? value : null;
+}
+
+function normalizeContactEdge(edge: FoafContactEdge): FoafContactEdge {
+  return {
+    ...edge,
+    // auth.foaf.io may serialize an unset profile field as an empty string.
+    // Canonicalize that wire shape here so every consumer's null fallback
+    // reaches the handle (and ultimately the FOAF ID) consistently.
+    display_name: nonBlankProfileText(edge.display_name),
+    user_name: nonBlankProfileText(edge.user_name),
+  };
+}
+
 /**
  * Reads canonical contact edges from auth.foaf.io. It deliberately returns
  * only graph data; an app projects identities, profiles, and ledger addresses
@@ -34,6 +49,6 @@ export class FoafContactsClient {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     const body = response.data as FoafContactsResponse;
-    return Array.isArray(body?.contacts) ? body.contacts : [];
+    return Array.isArray(body?.contacts) ? body.contacts.map(normalizeContactEdge) : [];
   }
 }
