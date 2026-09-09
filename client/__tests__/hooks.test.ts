@@ -22,6 +22,8 @@ function edge(overrides: Partial<FoafContactEdge> = {}): FoafContactEdge {
     user_name: 'ada',
     display_name: 'Ada Lovelace',
     avatar_url: null,
+    about: null,
+    area_label: null,
     foaf_address: '0xada',
     ...overrides,
   };

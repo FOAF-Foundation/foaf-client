@@ -18,6 +18,8 @@ RSpec.describe "contacts-envelope fixture" do
     expect(confirmed).to have_key("foaf_address")
     expect(confirmed.fetch("foaf_address")).not_to be_nil
     expect(confirmed.fetch("display_name")).not_to be_nil
+    expect(confirmed.fetch("about")).not_to be_nil
+    expect(confirmed.fetch("area_label")).not_to be_nil
   end
 
   it "leaves an unconfirmed contact's foaf_address null" do
@@ -25,5 +27,7 @@ RSpec.describe "contacts-envelope fixture" do
 
     expect(unconfirmed).to have_key("foaf_address")
     expect(unconfirmed.fetch("foaf_address")).to be_nil
+    expect(unconfirmed.fetch("about")).to be_nil
+    expect(unconfirmed.fetch("area_label")).to be_nil
   end
 end

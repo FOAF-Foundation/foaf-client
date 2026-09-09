@@ -16,6 +16,8 @@ describe('FoafContactsClient', () => {
             user_name: null,
             display_name: null,
             avatar_url: null,
+            about: null,
+            area_label: null,
             foaf_address: null,
           },
         ],
@@ -46,6 +48,8 @@ describe('FoafContactsClient', () => {
             user_name: 'sara',
             display_name: '',
             avatar_url: null,
+            about: 'Sells sourdough on Saturdays.',
+            area_label: 'Kaslo, BC',
             foaf_address: '0x6c5bfe5026359c309c08d39c8156db6d0e7cd161',
           },
           {
@@ -55,6 +59,8 @@ describe('FoafContactsClient', () => {
             user_name: '   ',
             display_name: '\t',
             avatar_url: null,
+            about: null,
+            area_label: null,
             foaf_address: null,
           },
         ],
@@ -87,11 +93,13 @@ describe('contacts-envelope fixture: enriched FoafContactEdge shape', () => {
   const confirmed: FoafContactEdge = fixture.confirmed;
   const unconfirmed: FoafContactEdge = fixture.unconfirmed;
 
-  it('exposes all four enriched fields non-null for a confirmed contact', () => {
+  it('exposes all enriched fields non-null for a confirmed contact', () => {
     expect(confirmed.foaf_address).not.toBeNull();
     expect(confirmed.user_name).not.toBeNull();
     expect(confirmed.display_name).not.toBeNull();
     expect(confirmed.avatar_url).not.toBeNull();
+    expect(confirmed.about).not.toBeNull();
+    expect(confirmed.area_label).not.toBeNull();
     expect(confirmed.foaf_address).toMatch(/^0x[0-9a-fA-F]{40}$/);
   });
 
@@ -100,5 +108,7 @@ describe('contacts-envelope fixture: enriched FoafContactEdge shape', () => {
     expect(unconfirmed.user_name).toBeNull();
     expect(unconfirmed.display_name).toBeNull();
     expect(unconfirmed.avatar_url).toBeNull();
+    expect(unconfirmed.about).toBeNull();
+    expect(unconfirmed.area_label).toBeNull();
   });
 });

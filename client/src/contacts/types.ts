@@ -7,6 +7,10 @@ export interface FoafContactEdge {
   user_name: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  // Enriched profiles: descriptive identity fields. Null for an unconfirmed or
+  // deleted edge, mirroring the other summary fields.
+  about: string | null;
+  area_label: string | null;
   // foaf_address is non-null only for confirmed contacts.
   foaf_address: string | null;
 }
