@@ -20,6 +20,12 @@ export interface FoafIdentity {
   pending_email?: string | null;
   has_password?: boolean;
   avatar_url: string | null;
+  // Enriched profiles: self-set descriptive fields on the identity. They ride
+  // public_summary → GET /v1/contacts + by_handle to every FOAF app, and
+  // round-trip in token_identity for the profile editor. area_label is a typed
+  // place label, never geolocation.
+  about?: string | null;
+  area_label?: string | null;
   // The custodian's one-address-per-identity ledger address (0x…), bound on
   // auth.foaf.io. Absent/null until the wallet is minted (EC 1) — apps read it
   // straight off the session identity instead of accepting a client-supplied

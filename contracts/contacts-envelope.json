@@ -6,6 +6,8 @@
     "user_name": "alice",
     "display_name": "Alice Example",
     "avatar_url": "https://cdn.foaf.test/avatars/alice.png",
+    "about": "Grows heirloom tomatoes and keeps bees.",
+    "area_label": "Crawford Bay, BC",
     "foaf_address": "0x1111111111111111111111111111111111111111"
   },
   "unconfirmed": {
@@ -15,6 +17,8 @@
     "user_name": null,
     "display_name": null,
     "avatar_url": null,
+    "about": null,
+    "area_label": null,
     "foaf_address": null
   }
 }

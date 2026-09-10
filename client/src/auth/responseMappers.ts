@@ -64,6 +64,10 @@ function mapFlatAttributes(attrs: Record<string, unknown>): FoafIdentity {
     // when the wallet is unbound (EC 1).
     foaf_address: 'foaf_address' in attrs ? asString(attrs.foaf_address) : undefined,
     avatar_url: asString(attrs.avatar_url),
+    // Enriched profile fields, present-key guarded like email_verified_at so
+    // they flow from both the flat and v1-token-identity shapes into the editor.
+    about: 'about' in attrs ? asString(attrs.about) : undefined,
+    area_label: 'area_label' in attrs ? asString(attrs.area_label) : undefined,
     created_at: asString(attrs.created_at) ?? '',
     updated_at: asString(attrs.updated_at) ?? '',
   };
