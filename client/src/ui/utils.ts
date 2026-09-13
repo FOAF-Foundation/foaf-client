@@ -1,6 +1,7 @@
 import type {
   PaymentModalAction,
   TrustlineDirection,
+  TrustlineEvent,
   ViewerTrustlineBalance,
 } from './hooks/types';
 
@@ -173,6 +174,90 @@ export function transferEventDisplay(
     return { sign: '\u2212', amount: magnitude, tone: 'negative', dateIso, meta, txId };
   }
   return { sign: '', amount: magnitude, tone: 'neutral', dateIso, meta, txId };
+}
+
+export interface RunningBalance {
+  /** Viewer-oriented balance BEFORE this transaction (positive = owed to viewer). */
+  before: number;
+  /** Viewer-oriented balance AFTER this transaction. */
+  after: number;
+}
+
+const roundCents = (n: number): number => Math.round(n * 100) / 100;
+
+/**
+ * Per-event running balance, ANCHORED to the viewer's authoritative trustline
+ * balance and walked backward from the newest transfer — never summed from zero.
+ *
+ * The events feed is capped (FoafLedgerClient fetches only the last N), so a
+ * sum-from-zero under-counts by whatever was truncated and re-skews as new
+ * activity ages older events off the window. Anchoring the newest row to the
+ * current balance and subtracting each delta backward keeps the newest row equal
+ * to the balance shown everywhere else and is immune to feed truncation. (Ported
+ * from GrowOperative's Foaf::AuditService#events_for_trustline.)
+ *
+ * `anchorBalance` is viewer-oriented (ViewerTrustlineBalance.balance: positive =
+ * counterparty owes the viewer, negative = the viewer owes). A Transfer FROM the
+ * viewer moves it by -value (viewer owes more); a Transfer TO the viewer by
+ * +value. Returns a Map keyed by event reference (display order is the caller's
+ * business); an absent/non-finite anchor yields an empty Map, so callers fall
+ * back to a balance-free, delta-only list.
+ */
+export function runningBalanceByEvent(
+  events: TrustlineEvent[],
+  viewerAddress: string,
+  anchorBalance: string | number | null | undefined,
+): Map<TrustlineEvent, RunningBalance> {
+  const result = new Map<TrustlineEvent, RunningBalance>();
+  const anchor = Number(anchorBalance);
+  if (anchorBalance == null || anchorBalance === '' || !Number.isFinite(anchor)) return result;
+
+  const viewer = viewerAddress.toLowerCase();
+  // Balance-moving transfers the viewer is party to, in chronological order.
+  const chron = events
+    .map((event, i) => ({ event, i }))
+    .filter(({ event }) => {
+      if (event.type !== 'Transfer' || !Number.isFinite(Number(event.value))) return false;
+      const from = event.from?.toLowerCase();
+      const to = event.to?.toLowerCase();
+      return from === viewer || to === viewer;
+    })
+    .sort((a, b) => {
+      const dt = a.event.timestamp - b.event.timestamp;
+      if (dt !== 0) return dt;
+      const ka = Number(a.event.transactionId ?? a.event.blockNumber ?? a.i);
+      const kb = Number(b.event.transactionId ?? b.event.blockNumber ?? b.i);
+      if (Number.isFinite(ka) && Number.isFinite(kb) && ka !== kb) return ka - kb;
+      return a.i - b.i;
+    })
+    .map(({ event }) => event);
+
+  // Walk newest -> oldest, pinning the newest 'after' to the anchor balance.
+  let after = roundCents(anchor);
+  for (let idx = chron.length - 1; idx >= 0; idx--) {
+    const event = chron[idx];
+    const value = Number(event.value);
+    const delta = event.from.toLowerCase() === viewer ? -value : value;
+    const before = roundCents(after - delta);
+    result.set(event, { before, after });
+    after = before;
+  }
+  return result;
+}
+
+/**
+ * Formats a viewer-oriented running balance for the history column: absolute
+ * magnitude ('$12.00') plus tone (positive = counterparty owes the viewer,
+ * negative = the viewer owes, neutral at zero) — same convention as
+ * {@link balancePillFor}.
+ */
+export function runningBalanceDisplay(
+  balance: number,
+): { amount: string; tone: 'positive' | 'negative' | 'neutral' } {
+  const magnitude = Number.isFinite(balance) ? Math.abs(balance) : 0;
+  const amount = `$${magnitude.toFixed(2)}`;
+  const tone = magnitude < 0.005 ? 'neutral' : balance > 0 ? 'positive' : 'negative';
+  return { amount, tone };
 }
 
 export function eventAmountDisplay(amount: string | number): EventAmountDisplay {

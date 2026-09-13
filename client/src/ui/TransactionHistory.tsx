@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { resolveTheme, useFoafTheme } from './FoafThemeProvider';
-import { formatRelativeDate, transferEventDisplay } from './utils';
+import { formatRelativeDate, runningBalanceByEvent, runningBalanceDisplay, transferEventDisplay } from './utils';
 import type { TrustlineEvent } from './hooks/types';
 import type { FoafUiTheme } from './theme';
 
@@ -10,6 +10,13 @@ export interface TransactionHistoryProps {
   viewerAddress: string;
   loading: boolean;
   error: Error | null;
+  /**
+   * The viewer's current trustline balance (ViewerTrustlineBalance.balance).
+   * When provided, each row shows the running balance after that transaction,
+   * ANCHORED to this value and walked backward, so it stays correct even when
+   * the events feed is truncated. When omitted, rows show amounts only.
+   */
+  viewerBalance?: string | number | null;
   theme?: Partial<FoafUiTheme>;
 }
 
@@ -26,6 +33,7 @@ export function TransactionHistory({
   viewerAddress,
   loading,
   error,
+  viewerBalance,
   theme,
 }: TransactionHistoryProps) {
   const contextTheme = useFoafTheme();
@@ -53,6 +61,8 @@ export function TransactionHistory({
     .filter((row): row is { event: (typeof events)[number]; display: NonNullable<ReturnType<typeof transferEventDisplay>> } =>
       row.display !== null,
     );
+
+  const balances = runningBalanceByEvent(events, viewerAddress, viewerBalance);
 
   if (rows.length === 0) {
     return (
@@ -108,6 +118,30 @@ export function TransactionHistory({
                 {display.amount}
               </Text>
             </View>
+            {(() => {
+              const rb = balances.get(event);
+              if (!rb) return null;
+              const before = runningBalanceDisplay(rb.before);
+              const after = runningBalanceDisplay(rb.after);
+              const afterColor =
+                after.tone === 'positive'
+                  ? resolved.colors.balancePositive
+                  : after.tone === 'negative'
+                    ? resolved.colors.balanceNegative
+                    : resolved.colors.mutedText;
+              return (
+                <Text
+                  style={{
+                    color: resolved.colors.mutedText,
+                    fontSize: (resolved.typography?.bodySize ?? 14) - 3,
+                    fontVariant: numericFontVariant as ('tabular-nums')[],
+                  }}
+                >
+                  {before.amount} {'→'}{' '}
+                  <Text style={{ color: afterColor, fontWeight: '600' }}>{after.amount}</Text>
+                </Text>
+              );
+            })()}
             {display.meta.description ? (
               <Text style={{ color: resolved.colors.text }}>{display.meta.description}</Text>
             ) : null}
