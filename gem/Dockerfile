@@ -1,4 +1,4 @@
-FROM ruby:3.2.2-slim
+FROM ruby:3.4.11-slim
 
 RUN apt-get update -qq \
   && apt-get install -y --no-install-recommends \
