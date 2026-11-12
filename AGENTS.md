@@ -7,7 +7,10 @@ Shared client SDK for the FOAF ecosystem.
 - `gem/` is the Ruby backend package. It exposes `Foaf::Auth` and `Foaf::Ledger`.
 - `client/` is the TypeScript/React Native package. It exposes `auth`, `contacts`,
   `ledger`, `adapters`, and `ui` entry points.
-- `contracts/` contains wire fixtures shared by both implementations.
+- `python/` is the Python package (`foaf-client` on the wire, `foaf_client` on
+  import). It exposes `foaf_client.auth` today; contacts, ledger, signer and
+  custodian follow with parity to the gem.
+- `contracts/` contains wire fixtures shared by every implementation.
 
 Dependency direction is `ledger -> contacts -> auth`. Auth and contacts must not
 depend on ledger code.
@@ -16,7 +19,8 @@ depend on ledger code.
 
 - FOAF write signatures are Ethereum `personal_sign` signatures over the exact
   UTF-8 request body sent on the wire.
-- Read failures return `nil` in Ruby and throw in TypeScript.
+- Read failures return `nil` in Ruby and throw in TypeScript. Python follows
+  Ruby's rule (return `None`) when the ledger module lands.
 - Mutating transfer calls preserve status and response body.
 - `max-capacity-path-info` must include `address` in the JSON body until the
   upstream route/controller parameter mismatch is fixed.
@@ -41,6 +45,7 @@ Use Docker:
 ```bash
 docker compose run --rm gem
 docker compose run --rm client
+docker compose run --rm python
 ```
 
 Live FOAF contract tests are opt-in with `INTEGRATION=1`.

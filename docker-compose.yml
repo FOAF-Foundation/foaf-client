@@ -20,6 +20,18 @@ services:
       - ./contracts:/workspace/contracts:ro
       - foaf_client_node_modules:/workspace/client/node_modules
 
+  python:
+    image: ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+    working_dir: /workspace/python
+    command: sh -lc "uv sync && uv run ruff check src tests && uv run pytest"
+    environment:
+      UV_PROJECT_ENVIRONMENT: /venv
+    volumes:
+      - ./python:/workspace/python
+      - ./contracts:/workspace/contracts:ro
+      - foaf_client_python_venv:/venv
+
 volumes:
+  foaf_client_python_venv:
   foaf_client_bundle:
   foaf_client_node_modules:

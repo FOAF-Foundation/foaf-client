@@ -8,3 +8,10 @@
 
 .bureau/runs/
 .bureau/archive/
+
+# python
+python/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
