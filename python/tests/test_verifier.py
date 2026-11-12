@@ -254,3 +254,48 @@ def test_for_auth_base_url_builds_the_tier_urls():
         v.verify(token(aud="neotribes"))
     assert "https://bauth.foaf.io/v1/revocations/snapshot?audience=neotribes" in calls
     assert "https://bauth.foaf.io/.well-known/jwks.json" in calls
+
+
+class FlakyTransport(FakeAuth):
+    """An injected http_get that fails with a non-FetchError, like httpx or a socket."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.raise_on: str | None = None
+
+    def http_get(self, url, headers):
+        if self.raise_on and self.raise_on in url:
+            raise ConnectionError("connection reset")
+        return super().http_get(url, headers)
+
+
+def test_transport_errors_on_snapshot_keep_the_last_snapshot():
+    auth = FlakyTransport()
+    auth.snapshot_overrides["revoked_jtis"] = [{"jti": "jti-1", "exp": _iso(auth.now + 3600)}]
+    verifier = auth.verifier(revocations_ttl=60)
+    with pytest.raises(RevokedTokenError):
+        verifier.verify(token())
+    auth.raise_on = "revocations"
+    auth.now += 120
+    with pytest.raises(RevokedTokenError):
+        verifier.verify(token())
+
+
+def test_transport_errors_on_jwks_use_the_last_good_key():
+    auth = FlakyTransport()
+    verifier = auth.verifier(jwks_ttl=60)
+    verifier.verify(token())
+    auth.raise_on = "jwks"
+    auth.now += 120
+    assert verifier.verify(token())["sub"] == "foaf-id-1"
+
+
+def test_transport_errors_with_no_cache_surface_as_fetch_error():
+    auth = FlakyTransport()
+    auth.raise_on = "jwks"
+    with pytest.raises(FetchError):
+        auth.verifier().verify(token())
+
+
+def test_future_iat_is_accepted_like_the_gem(auth):
+    assert auth.verifier().verify(token(iat=int(time.time()) + 60))["sub"] == "foaf-id-1"

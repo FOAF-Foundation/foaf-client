@@ -40,7 +40,9 @@ What it checks, same as `Foaf::Auth::Verifier` in the gem:
 - The audience's revocation snapshot, fetched with your service token: revoked signing keys, per-identity cutoffs (log out everywhere), revoked token ids (log out).
 - If no snapshot has ever been fetched, revocations are not enforced; a failed refresh keeps the last snapshot.
 
-The Python verifier also requires `exp`, `iat`, `sub`, `iss` and `aud` to be present. auth.foaf.io always sets them.
+The Python verifier also requires `exp`, `iat`, `sub`, `iss` and `aud` to be present. auth.foaf.io always sets them. Like the gem, it does not reject an `iat` in the future.
+
+Any failure fetching or parsing JWKS or the snapshot, including errors from an injected `http_get`, becomes `FetchError`, so the cache fallbacks always apply.
 
 ## Develop
 

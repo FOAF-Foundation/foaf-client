@@ -105,7 +105,7 @@ class RevocationCache:
                 snapshot = RevocationSnapshot(payload, fetched_at=self._clock())
             except FetchError:
                 raise
-            except (ValueError, KeyError, TypeError, AttributeError) as e:
+            except Exception as e:  # any fetch or parse failure, like the gem
                 raise FetchError(str(e)) from e
             if snapshot.audience != self._audience:
                 raise FetchError("revocation snapshot audience mismatch")

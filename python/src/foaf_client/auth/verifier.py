@@ -107,7 +107,8 @@ class Verifier:
                 audience=self._audience,
                 issuer=self._issuer,
                 leeway=self._clock_skew,
-                options={"require": ["exp", "iat", "sub", "iss", "aud"]},
+                # verify_iat off: ruby-jwt does not check iat, so neither do we.
+                options={"require": ["exp", "iat", "sub", "iss", "aud"], "verify_iat": False},
             )
         except Error:
             raise

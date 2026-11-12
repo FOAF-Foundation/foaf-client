@@ -18,8 +18,8 @@ class JwksCache:
 
     Mirrors the gem: keys are reused for `ttl` seconds; on a fetch failure a
     key fetched within `last_good_max_age` is still used; an unknown kid is
-    negative-cached for `negative_ttl` seconds so a flood of bad tokens cannot
-    hammer the JWKS endpoint.
+    negative-cached for `negative_ttl` seconds, so repeats of the same bad kid
+    don't refetch. (Each new kid still triggers one fetch, as in the gem.)
     """
 
     def __init__(
@@ -90,7 +90,7 @@ class JwksCache:
                     keys[kid] = (jwt.PyJWK(jwk, algorithm="RS256").key, fetched_at)
             except FetchError:
                 raise
-            except (ValueError, KeyError, TypeError, AttributeError, jwt.PyJWTError) as e:
+            except Exception as e:  # any fetch or parse failure, like the gem
                 raise FetchError(str(e)) from e
             self._keys = keys
             self._negative = {}
