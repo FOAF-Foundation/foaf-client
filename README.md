@@ -4,6 +4,8 @@ One installable FOAF SDK per side:
 
 - Ruby gem: auth.foaf.io RS256 verification plus the FOAF ledger client.
 - TypeScript package: auth, contacts, ledger, adapters, and React Native UI.
+- Python package (`python/`): auth.foaf.io token verification today; contacts,
+  ledger and custodian to follow.
 
 The modules stay independently importable:
 
